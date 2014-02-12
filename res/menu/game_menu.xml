@@ -1,0 +1,24 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <!-- Search, should appear as action button -->
+
+
+    <!-- Settings, should always be in the overflow -->
+    <item
+        android:id="@+id/action_new_game"
+        android:showAsAction="always"
+        android:title="@string/action_new_game"/>
+
+    <!-- Settings, should always be in the overflow -->
+    <item
+        android:id="@+id/action_settings"
+        android:showAsAction="always"
+        android:title="@string/action_settings"/>
+    
+    <item
+        android:id="@+id/action_undo"
+        android:icon="@drawable/ic_action_back"
+        android:showAsAction="always"
+        android:title="Undo"/>
+    
+</menu>

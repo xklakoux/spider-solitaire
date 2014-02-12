@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">FreeSpider</string>
+    <string name="action_new_game">New game</string>
+    <string name="action_settings">Settings</string>
+    <string name="you_won">You won!</string>
+
+</resources>
