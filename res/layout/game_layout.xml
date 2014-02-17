@@ -1,15 +1,15 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/LinearLayout1"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/tablegreen"
+    android:background="@drawable/background"
     android:orientation="vertical"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context=".GameActivity" >
+    tools:context=".Game" >
 
     <ScrollView
         android:id="@+id/scrollPiles"
@@ -20,178 +20,102 @@
             android:id="@+id/piles"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:weightSum="10" >
+            android:splitMotionEvents="false"
+            android:weightSum="11" >
 
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile0"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
 
-                <ImageView
-                    android:id="@+id/template"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
 
-            <RelativeLayout
+            </com.xklakoux.freespider.Pile>
+
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile1"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
+            </com.xklakoux.freespider.Pile>
 
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile2"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile3"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile4"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile5"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile6"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile7"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile8"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
-
-            <RelativeLayout
+            <com.xklakoux.freespider.Pile
                 android:id="@+id/pile9"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" >
+            </com.xklakoux.freespider.Pile>
 
-                <ImageView
-                    android:id="@+id/imageView1"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentTop="true"
-                    android:adjustViewBounds="true"
-                    android:src="@drawable/empty" />
-            </RelativeLayout>
+            <com.xklakoux.freespider.Pile
+                android:id="@+id/rlDeck"
+                style="@style/piles"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_weight="1"
+                android:visibility="invisible" >
+            </com.xklakoux.freespider.Pile>
         </LinearLayout>
     </ScrollView>
-
-    <ImageView
-        android:id="@+id/deck"
-        android:layout_width="50dp"
-        android:layout_height="75dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:adjustViewBounds="true"
-        android:src="@drawable/reverse" />
 
     <TextView
         android:id="@+id/winner"
@@ -200,8 +124,83 @@
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
         android:text="@string/you_won"
-        android:textSize="50sp"
         android:textColor="@color/red"
+        android:textSize="50sp"
         android:visibility="invisible" />
+
+    <ImageView
+        android:id="@+id/deck"
+        android:layout_width="40dp"
+        android:layout_height="60dp"
+        android:layout_alignBottom="@+id/sc"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:adjustViewBounds="true"
+        android:src="@drawable/reverse_0" />
+
+    <RelativeLayout
+        android:id="@+id/llStats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/scrollPiles"
+        android:layout_alignParentBottom="true"
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        android:layout_marginRight="@dimen/activity_horizontal_margin"
+        android:layout_toLeftOf="@+id/deck" >
+
+        <LinearLayout
+            android:id="@+id/LinearLayout02"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true" >
+
+            <TextView
+                android:id="@+id/TextView03"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Moves:" />
+
+            <TextView
+                android:id="@+id/tvMoves"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/llTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true" >
+
+            <Chronometer
+                android:id="@+id/tvTimeElapsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format="Timer:%s"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/llScore"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true" >
+
+            <TextView
+                android:id="@+id/textView1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Score:" />
+
+            <TextView
+                android:id="@+id/tvScore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="500"
+                android:textAppearance="?android:attr/textAppearanceSmall" />
+        </LinearLayout>
+    </RelativeLayout>
 
 </RelativeLayout>

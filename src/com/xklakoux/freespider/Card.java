@@ -5,7 +5,8 @@ package com.xklakoux.freespider;
 
 import android.content.ClipData;
 import android.content.Context;
-import android.util.Log;
+import android.graphics.Point;
+import android.support.v4.view.MotionEventCompat;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,7 +33,7 @@ public class Card extends ImageView {
 		this.suit = suit;
 		this.number = number;
 		setAdjustViewBounds(true);
-		setImageResource(R.drawable.reverse);
+		setImageResource(R.drawable.reverse_0);
 		setOnTouchListener(new CardTouchListener());
 	}
 
@@ -69,7 +70,7 @@ public class Card extends ImageView {
 		if (faceup) {
 			setImageResource(Utils.getResId(suit.getName() + "_" + number.getId(), R.drawable.class));
 		} else {
-			setImageResource(R.drawable.reverse);
+			setImageResource(R.drawable.reverse_0);
 		}
 	}
 
@@ -79,32 +80,40 @@ public class Card extends ImageView {
 
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+			final int action = MotionEventCompat.getActionMasked(event);
+
+			switch (action) {
+			case MotionEvent.ACTION_DOWN:
 
 				RelativeLayout owner = (RelativeLayout) v.getParent();
 				int index = owner.indexOfChild(v);
 				Card card = (Card) v;
 
-				if (index == owner.getChildCount() - 1 && !card.isFaceup()) {
-					card.setFaceup(true);
-
-					GameActivity.getMoves().add(new Move(GameActivity.getPiles().indexOf(owner), Move.ACTION_UNCOVER));
-					return false;
-				}
+				//				if (index == owner.getChildCount() - 1 && !card.isFaceup()) {
+				//					card.setFaceup(true);
+				//					GameActivity.getMoves().add(new Move(GameActivity.getPiles().indexOf(owner), Move.ACTION_UNCOVER));
+				//					return false;
+				//				}
 
 				if (isValidMove((Card) v)) {
 					ClipData data = ClipData.newPlainText("", "");
-
-					DragShadowBuilder shadowBuilder = new View.DragShadowBuilder(v);
+					for (int i = 0; i < index; i++) {
+						owner.getChildAt(i).setVisibility(View.INVISIBLE);
+					}
+					DragShadowBuilder shadowBuilder = new MyDragShadowBuilder(owner, card, event);
 					v.startDrag(data, shadowBuilder, v, 0);
-					v.setVisibility(View.INVISIBLE);
+					for (int i = 0; i < index; i++) {
+						owner.getChildAt(i).setVisibility(View.VISIBLE);
+					}
+					for (int i = index; i < owner.getChildCount(); i++) {
+						owner.getChildAt(i).setVisibility(View.INVISIBLE);
+					}
 					return true;
-				} else {
-					return false;
 				}
-			} else {
-				return false;
+
 			}
+			return false;
 		}
 
 		boolean isValidMove(Card selectedCard) {
@@ -112,7 +121,6 @@ public class Card extends ImageView {
 			int index = owner.indexOfChild(selectedCard);
 
 			if (!selectedCard.isFaceup()) {
-				Log.d(TAG, "face down");
 				return false;
 			}
 
@@ -126,12 +134,48 @@ public class Card extends ImageView {
 				}
 				referenceCard = card;
 			}
-			Log.d(TAG, "valid move");
 			return true;
 
 		}
 
+	}
 
+	private class MyDragShadowBuilder extends View.DragShadowBuilder {
+
+		RelativeLayout rl;
+		Card card;
+		MotionEvent event;
+
+		private MyDragShadowBuilder(RelativeLayout rl, Card card, MotionEvent event) {
+			super(rl);
+			this.rl = rl;
+			this.card = card;
+			this.event = event;
+		}
+
+		@Override
+		public void onProvideShadowMetrics(Point size, Point touch) {
+
+			int width;
+			int height;
+
+			width = getView().getWidth();
+			height = getView().getHeight();
+			size.set(width, height);
+			touch.set((int) event.getX(), calculateMarginTop(rl, card) + (int) event.getY());
+
+		}
+
+		private int calculateMarginTop(RelativeLayout rl, Card cardStart) {
+			int marginTop = 0;
+			for (int i = 1; i < rl.indexOfChild(cardStart); i++) {
+				Card card = (Card) rl.getChildAt(i);
+				float tempMargin = card.isFaceup() ? getResources().getDimension(R.dimen.card_stack_margin_up)
+						: getResources().getDimension(R.dimen.card_stack_margin_down);
+				marginTop += tempMargin;
+			}
+			return marginTop;
+		}
 	}
 
 }

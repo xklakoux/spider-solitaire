@@ -8,10 +8,11 @@ import com.xklakoux.freespider.enums.Suit;
  */
 public class Move {
 
-	public static final int ACTION_UNCOVER = 0;
+	public static final int ACTION_MOVE_UNCOVER = 0;
 	public static final int ACTION_COMPLETE = 1;
-	public static final int ACTION_MOVE = 2;
-	public static final int ACTION_DEAL = 3;
+	public static final int ACTION_COMPLETE_UNCOVER = 2;
+	public static final int ACTION_MOVE = 3;
+	public static final int ACTION_DEAL = 4;
 
 	private int amount;
 	private int from;
