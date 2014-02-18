@@ -4,6 +4,7 @@
 package com.xklakoux.freespider;
 
 import android.app.Application;
+import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
@@ -13,11 +14,13 @@ import android.content.SharedPreferences;
 public class App extends Application {
 
 	static private SharedPreferences settings;
+	static private Context context;
 
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		settings = getApplicationContext().getSharedPreferences("preferences", 0);
+		context = getApplicationContext();
 
 	}
 
@@ -25,5 +28,7 @@ public class App extends Application {
 		return settings;
 	}
 
-
+	public static Context getAppContext() {
+		return context;
+	}
 }

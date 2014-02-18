@@ -8,4 +8,35 @@
     <string name="all_tableaus_should_be_filled">All tableaus should be filled before dealing</string>
     <string name="uncover_all_cards_first">Uncover all cards first</string>
 
+    <string-array name="diffTypes">
+        <item>Easy</item>
+        <item>Medium</item>
+        <item>Hard</item>
+    </string-array>
+    <string-array name="listValues">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+    <string-array name="animTypes">
+        <item>No animations</item>
+        <item>Fast</item>
+        <item>Slow</item>
+    </string-array>
+    <string-array name="animValues">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+    <string-array name="orientationTypes">
+        <item>Automatic</item>
+        <item>Horizontal</item>
+        <item>Vertical</item>
+    </string-array>
+    <string-array name="orientationValues">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </string-array>
+
 </resources>

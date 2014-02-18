@@ -5,10 +5,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -20,11 +20,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnDragListener;
-import android.view.ViewGroup.LayoutParams;
-import android.view.ViewGroup.MarginLayoutParams;
 import android.view.ViewTreeObserver;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
-import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.Animation.AnimationListener;
 import android.view.animation.DecelerateInterpolator;
@@ -110,8 +107,8 @@ public class Game extends Activity {
 		pileLayouts.add((Pile) findViewById(R.id.pile8));
 		pileLayouts.add((Pile) findViewById(R.id.pile9));
 
-		for (Pile rl : pileLayouts) {
-			rl.setOnDragListener(new PileOnDragListener());
+		for (Pile pile : pileLayouts) {
+			pile.setOnDragListener(new PileOnDragListener());
 		}
 
 		deck = (ImageView) findViewById(R.id.deck);
@@ -140,17 +137,14 @@ public class Game extends Activity {
 
 			int i = 0;
 			gameState = GameState.DEALING;
-			for (Pile rl : pileLayouts) {
-				int count = rl.getChildCount();
-				if (count > 1) {
-					Card possiblyCovered = (Card) rl.getChildAt(count - 1);
-					if (!possiblyCovered.isFaceup()) {
-						Toast.makeText(Game.this, R.string.uncover_all_cards_first, Toast.LENGTH_SHORT).show();
-						return;
-					}
+			for (Pile pile : pileLayouts) {
+				Card possiblyCovered = pile.getLastCard();
+				if (!possiblyCovered.isFaceup()) {
+					Toast.makeText(Game.this, R.string.uncover_all_cards_first, Toast.LENGTH_SHORT).show();
+					return;
 				}
 				Card card = allCards.get(0);
-				dealCard(rl, card, true, i++, false);
+				dealCard(pile, card, true, i++, false);
 				allCards.remove(0);
 			}
 
@@ -164,17 +158,10 @@ public class Game extends Activity {
 		 * @return
 		 */
 		private boolean cardsCorrect() {
-			for (Pile rl : pileLayouts) {
-				if (rl.getChildCount() < 2) {
+			for (Pile pile : pileLayouts) {
+				if (pile.getCardsCount() < 1) {
 					Toast.makeText(Game.this, R.string.all_tableaus_should_be_filled, Toast.LENGTH_SHORT).show();
 					return false;
-				} else {
-					int count = rl.getChildCount();
-					Card possiblyCovered = (Card) rl.getChildAt(count - 1);
-					if (!possiblyCovered.isFaceup()) {
-						Toast.makeText(Game.this, R.string.uncover_all_cards_first, Toast.LENGTH_SHORT).show();
-						return false;
-					}
 				}
 			}
 			return true;
@@ -189,8 +176,7 @@ public class Game extends Activity {
 		return offsetY;
 	}
 
-	private void dealCard(Pile rl, Card card, boolean faceup, int hundredMillisecondOffset,
-			boolean isNewGameDeal) {
+	private void dealCard(Pile pile, Card card, boolean faceup, int hundredMillisecondOffset, boolean isNewGameDeal) {
 
 		int[] deckLocation = new int[2];
 		deck.getLocationOnScreen(deckLocation);
@@ -199,7 +185,7 @@ public class Game extends Activity {
 		int statusBarOffsetY = getStatusBarOffset();
 
 		int[] location = new int[2];
-		rl.getChildAt(rl.getChildCount() - 1).getLocationOnScreen(location);
+		pile.getLastTrueChild().getLocationOnScreen(location);
 		Log.d(TAG + " locations", location[0] + " " + location[1]);
 
 		final Card fakeCard = new Card(Game.this, Suit.SPADES, Number.ACE);
@@ -239,7 +225,7 @@ public class Game extends Activity {
 		anim.setInterpolator(new DecelerateInterpolator(2.0f));
 		anim.setDuration(400);
 		anim.setStartOffset(hundredMillisecondOffset++ * 50);
-		anim.setAnimationListener(new DealAnimationListener(rl, card, root, fakeCard));
+		anim.setAnimationListener(new DealAnimationListener(pile, card, root, fakeCard));
 		fakeCard.setAnimation(anim);
 
 		card.setFaceup(faceup);
@@ -261,7 +247,7 @@ public class Game extends Activity {
 
 		@Override
 		public void onAnimationEnd(Animation animation) {
-			addCard(container, card);
+			container.addCard(card);
 			root.removeView(fakeAnimCard);
 			cardsDealt++;
 			if (cardsDealt == START_CARDS_DEAL_COUNT) {
@@ -285,21 +271,20 @@ public class Game extends Activity {
 	}
 
 	private void setupDeckMeasurements() {
-		ViewTreeObserver vto = pileLayouts.get(0).getChildAt(0).getViewTreeObserver();
+		ViewTreeObserver vto = pileLayouts.get(0).getFirstCardSpot().getViewTreeObserver();
 		vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
 			@SuppressWarnings("deprecation")
 			@Override
 			public void onGlobalLayout() {
 				pileLayouts.get(0).getViewTreeObserver().removeGlobalOnLayoutListener(this);
-				deck.getLayoutParams().width = pileLayouts.get(0).getChildAt(0).getMeasuredWidth();
-				deck.getLayoutParams().height = pileLayouts.get(0).getChildAt(0).getMeasuredHeight();
+				deck.getLayoutParams().width = pileLayouts.get(0).getFirstCardSpot().getMeasuredWidth();
+				deck.getLayoutParams().height = pileLayouts.get(0).getFirstCardSpot().getMeasuredHeight();
 				deck.setAdjustViewBounds(true);
 				if (onCreate && gameState == GameState.NOT_STARTED) {
 					setupNewGame();
 				}
 			}
 		});
-
 	}
 
 	private List<Card> chooseDecks(Difficulty difficulty) {
@@ -350,12 +335,12 @@ public class Game extends Activity {
 	private void dealNewGame() {
 
 		for (int k = 0; k < START_CARDS_DEAL_COUNT; k++) {
-			Pile rl = pileLayouts.get(k % 10);
+			Pile pile = pileLayouts.get(k % 10);
 
 			Card card = allCards.get(0);
 
 			boolean faceUp = START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
-			dealCard(rl, card, faceUp, k, true);
+			dealCard(pile, card, faceUp, k, true);
 
 			allCards.remove(0);
 		}
@@ -386,8 +371,10 @@ public class Game extends Activity {
 			}
 			return true;
 		case R.id.action_settings:
-			showSettings();
-			return true;
+			Intent settingsActivity = new Intent(getBaseContext(),
+					SettingsDialog.class);
+			startActivity(settingsActivity);
+			//			showSettings();
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -422,7 +409,7 @@ public class Game extends Activity {
 		decksCompleted = 0;
 		cardsDealt = 0;
 		for (Pile pileLayout : pileLayouts) {
-			pileLayout.removeViews(1, pileLayout.getChildCount() - 1);
+			pileLayout.removeViews(1, pileLayout.getCardsCount());
 		}
 		allCards = chooseDecks(chosenDifficulty);
 		Collections.shuffle(allCards);
@@ -431,6 +418,7 @@ public class Game extends Activity {
 		deck.setVisibility(View.VISIBLE);
 		statsManager.timeStop();
 	}
+
 
 	private void showSettings() {
 		AlertDialog.Builder builderSingle = new AlertDialog.Builder(Game.this);
@@ -459,8 +447,8 @@ public class Game extends Activity {
 					difficultyAdapter.add("Easy");
 					difficultyAdapter.add("Medium");
 					difficultyAdapter.add("Hard");
-					builderInner.setAdapter(difficultyAdapter, new DialogInterface.OnClickListener() {
 
+					builderInner.setAdapter(difficultyAdapter, new DialogInterface.OnClickListener() {
 						@Override
 						public void onClick(DialogInterface dialog, int which) {
 							String value = difficultyAdapter.getItem(which).toUpperCase(Locale.getDefault());
@@ -482,129 +470,59 @@ public class Game extends Activity {
 		if (moves.isEmpty() || gameState == GameState.FINISHED) {
 			return;
 		}
-		int amount;
-		Card cardToUncover;
-		int indexOfDragged;
+		int indexOfFirstDragged;
 
 		Move move = moves.pop();
 		Pile landingContainer = pileLayouts.get(move.getFrom());
 		Pile draggedParent = pileLayouts.get(move.getTo());
-		int indexToUncover = landingContainer.getChildCount() - 1;
+
+		if (move.isCompletedUncovered()) {
+			draggedParent.getLastCard().setFaceup(false);
+		}
+
+		if (move.isCompleted()) {
+			decksCompleted--;
+			statsManager.updatePoints(StatsManager.DECK_UNDID);
+
+			for (Number num : Number.values()) {
+				Card card = new Card(Game.this, move.getSuit(), num);
+				card.setFaceup(true);
+				draggedParent.addCard(card);
+			}
+		}
+
+		if (move.isUncover()) {
+			indexOfFirstDragged = landingContainer.getCardsCount() - move.getAmount();
+
+			landingContainer.getLastCard().setFaceup(false);
+		}
+
 		switch (move.getAction()) {
-		case Move.ACTION_COMPLETE:
-			decksCompleted--;
-			amount = Number.values().length - move.getAmount();
-			for (Number num : Number.values()) {
-				if (amount > 0) {
-					Card card = new Card(Game.this, move.getSuit(), num);
-					card.setFaceup(true);
-					addCard(draggedParent, card);
-				} else {
-					Card card = new Card(Game.this, move.getSuit(), num);
-					card.setFaceup(true);
-					addCard(landingContainer, card);
 
-				}
-				statsManager.updateMoves(StatsManager.MOVE);
-				amount--;
-			}
-
-			break;
-		case Move.ACTION_COMPLETE_UNCOVER:
-			decksCompleted--;
-
-			cardToUncover = (Card) landingContainer.getChildAt(indexToUncover);
-			cardToUncover.setFaceup(false);
-
-			amount = Number.values().length - move.getAmount();
-			for (Number num : Number.values()) {
-				if (amount > 0) {
-					Card card = new Card(Game.this, move.getSuit(), num);
-					card.setFaceup(true);
-					addCard(draggedParent, card);
-				} else {
-					Card card = new Card(Game.this, move.getSuit(), num);
-					card.setFaceup(true);
-					addCard(landingContainer, card);
-
-				}
-				statsManager.updateMoves(StatsManager.MOVE);
-				amount--;
-			}
-			break;
 		case Move.ACTION_MOVE:
-			indexOfDragged = draggedParent.getChildCount() - move.getAmount();
-
-			for (int i = indexOfDragged; i < draggedParent.getChildCount();) {
-				moveCard(draggedParent, landingContainer, (Card) draggedParent.getChildAt(i));
+			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
+			Log.d(TAG, "indexOfFirstDragged: " + indexOfFirstDragged + " amount: " + move.getAmount());
+			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
+				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
 			}
-			statsManager.updateMoves(StatsManager.MOVE);
-			break;
-
-		case Move.ACTION_MOVE_UNCOVER:
-			indexOfDragged = draggedParent.getChildCount() - move.getAmount();
-
-			cardToUncover = (Card) landingContainer.getChildAt(indexToUncover);
-			cardToUncover.setFaceup(false);
-
-			for (int i = indexOfDragged; i < draggedParent.getChildCount();) {
-				moveCard(draggedParent, landingContainer, (Card) draggedParent.getChildAt(i));
-			}
-			statsManager.updateMoves(StatsManager.MOVE);
-
 			break;
 
 		case Move.ACTION_DEAL:
 			if (allCards.isEmpty()) {
 				deck.setVisibility(View.VISIBLE);
 			}
-			for (Pile rl : pileLayouts) {
+			for (Pile pile : pileLayouts) {
 
-				Card card = (Card) rl.getChildAt(rl.getChildCount() - 1);
+				Card card = pile.getLastCard();
 				card.setFaceup(false);
 				allCards.add(0, card);
-				rl.removeViewAt(rl.getChildCount() - 1);
+				pile.removeLastCard();
 			}
-			statsManager.updateMoves(StatsManager.MOVE);
 			break;
 		}
 
-	}
+		statsManager.updateMoves(StatsManager.MOVE);
 
-	private void moveCard(Pile draggedParent, Pile landingContainer, Card movedCard) {
-		draggedParent.removeView(movedCard);
-		addCard(landingContainer, movedCard);
-	}
-
-	private void addCard(Pile layout, Card movedCard) {
-
-		int marginTop = calculateMarginTop(layout);
-
-		MarginLayoutParams marginParams = new MarginLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
-				LayoutParams.WRAP_CONTENT));
-		marginParams.setMargins(0, marginTop, 0, 0);
-		Pile.LayoutParams layoutParams = new Pile.LayoutParams(marginParams);
-		movedCard.setLayoutParams(layoutParams);
-		layout.addView(movedCard);
-	}
-
-	private int calculateMarginTop(Pile rl) {
-		int marginTop = 0;
-		for (int i = 1; i < rl.getChildCount(); i++) {
-			Card card = (Card) rl.getChildAt(i);
-			float tempMargin = card.isFaceup() ? getResources().getDimension(R.dimen.card_stack_margin_up)
-					: getResources().getDimension(R.dimen.card_stack_margin_down);
-			marginTop += tempMargin;
-		}
-		return marginTop;
-	}
-
-	public static List<Pile> getPiles() {
-		return pileLayouts;
-	}
-
-	public static Stack<Move> getMoves() {
-		return moves;
 	}
 
 	class PileOnDragListener implements OnDragListener {
@@ -620,7 +538,7 @@ public class Game extends Activity {
 			if (draggedParent == null) {
 				return false;
 			}
-			int indexOfDragged = draggedParent.indexOfChild(draggedCard);
+			int indexOfDragged = draggedParent.indexOfCard(draggedCard);
 
 			Pile landingContainer = (Pile) v;
 
@@ -633,58 +551,39 @@ public class Game extends Activity {
 				break;
 			case DragEvent.ACTION_DROP:
 				Log.d(TAG, "drop");
-				if (landingContainer.getChildCount() != 1) {
-					Card lastCard = (Card) landingContainer.getChildAt(landingContainer.getChildCount() - 1);
+				if (landingContainer == draggedParent) {
+					return false;
+				}
+				if (!landingContainer.isEmpty()) {
+					Card lastCard = landingContainer.getLastCard();
+
 					if (lastCard.getNumber().getId() != draggedCard.getNumber().getId() + 1 || !lastCard.isFaceup()) {
 						return false;
 					}
 				}
 				int movedCards = 0;
-				for (int i = indexOfDragged; i < draggedParent.getChildCount();) {
-					draggedParent.getChildAt(i).setVisibility(View.VISIBLE);
-					moveCard(draggedParent, landingContainer, (Card) draggedParent.getChildAt(i));
+				for (int i = indexOfDragged; i < draggedParent.getCardsCount();) {
+					draggedParent.getCardAt(i).setVisibility(View.VISIBLE);
+					draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
 					movedCards++;
 				}
-
+				Log.d(TAG, "movedCards " + movedCards);
 				int indexOfDraggedParent = pileLayouts.indexOf(draggedParent);
 				int indexOfLandingParent = pileLayouts.indexOf(landingContainer);
 
+				moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard.getSuit(),
+						Move.ACTION_MOVE));
 				if (checkFullSetAndClear(landingContainer)) {
-					if (draggedParent.getChildCount() > 2) {
-						Card previousCard = (Card) draggedParent.getChildAt(indexOfDragged - 1);
-						if (previousCard.isFaceup()) {
-							moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard
-									.getSuit(), Move.ACTION_COMPLETE));
-						} else {
-							moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard
-									.getSuit(), Move.ACTION_COMPLETE_UNCOVER));
-							previousCard.setFaceup(true);
-						}
-					} else {
-						moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard
-								.getSuit(), Move.ACTION_COMPLETE));
-					}
-				} else {
-					if (draggedParent.getChildCount() > 2) {
-						Card previousCard = (Card) draggedParent.getChildAt(indexOfDragged - 1);
-						if (previousCard.isFaceup()) {
-							moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard
-									.getSuit(), Move.ACTION_MOVE));
-						} else {
-							moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard
-									.getSuit(), Move.ACTION_MOVE_UNCOVER));
-							previousCard.setFaceup(true);
-						}
-					} else {
-						moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard
-								.getSuit(), Move.ACTION_MOVE));
-					}
+					moves.get(moves.size() - 1).setCompleted(true);
 				}
+				Move lastMove = moves.get(moves.size() - 1);
+				lastMove.setUncover(draggedParent.uncoverLastCard());
+
 				statsManager.updateMoves(StatsManager.MOVE);
 				return true;
 			case DragEvent.ACTION_DRAG_ENDED:
-				for (int i = indexOfDragged; i < draggedParent.getChildCount(); i++) {
-					Card card = (Card) draggedParent.getChildAt(i);
+				for (int i = indexOfDragged; i < draggedParent.getCardsCount(); i++) {
+					Card card = draggedParent.getCardAt(i);
 					card.setVisibility(View.VISIBLE);
 				}
 				return false;
@@ -695,45 +594,43 @@ public class Game extends Activity {
 		}
 
 		private boolean checkFullSetAndClear(Pile container) {
-			if (container.getChildCount() > 1) {
-				int lastIndex = container.getChildCount() - 1;
-				int counter = 1;
+			int lastIndex = container.getCardsCount() - 1;
+			int counter = 1;
+			Card referenceCard = container.getLastCard();
+			for (int i = lastIndex - 1; i >= 0; i--) {
+				Card card = container.getCardAt(i);
+				if (!(referenceCard.getSuit() == card.getSuit())
+						|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1)) || !card.isFaceup()) {
+					break;
+				}
+				referenceCard = card;
+				counter++;
 
-				Card referenceCard = (Card) container.getChildAt(lastIndex);
-				for (int i = lastIndex - 1; i > 0; i--) {
-					Card card = (Card) container.getChildAt(i);
-					if (!(referenceCard.getSuit() == card.getSuit())
-							|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1))
-							|| !card.isFaceup()) {
-						break;
-					}
-					referenceCard = card;
-					counter++;
+			}
+			Log.d(TAG, "counter " + counter);
+
+			float step = getResources().getDimension(R.dimen.card_stack_margin_up);
+
+			if (counter == FULL_NUMBER_SET) {
+				for (int i = lastIndex; i > lastIndex - FULL_NUMBER_SET; i--) {
+					Card card = container.getCardAt(i);
+					float deltaY = -(i - (lastIndex - FULL_NUMBER_SET + 1)) * step;
+
+					Animation trans = new TranslateAnimation(0.0f, 0.0f, 0.0f, deltaY);
+					trans.setInterpolator(new DecelerateInterpolator(2.0f));
+					trans.setDuration(500);
+					trans.setFillAfter(true);
+					trans.setAnimationListener(new MyAnimationListener(container, card));
+					card.startAnimation(trans);
+
 				}
 
-				float step = getResources().getDimension(R.dimen.card_stack_margin_up);
-
-				if (counter == FULL_NUMBER_SET) {
-					for (int i = lastIndex; i > lastIndex - FULL_NUMBER_SET; i--) {
-						Card card = (Card) container.getChildAt(i);
-						float deltaY = -(i - (lastIndex - FULL_NUMBER_SET + 1)) * step;
-
-						Animation trans = new TranslateAnimation(0.0f, 0.0f, 0.0f, deltaY);
-						trans.setInterpolator(new AccelerateInterpolator());
-						trans.setDuration(1000);
-						trans.setFillAfter(true);
-						trans.setAnimationListener(new MyAnimationListener(container, card));
-						card.startAnimation(trans);
-
-					}
-
-					decksCompleted++;
-					statsManager.updatePoints(StatsManager.DECK_COMPLETED);
-					if (decksCompleted == NUMBER_OF_DECKS) {
-						gameWon();
-					}
-					return true;
+				decksCompleted++;
+				statsManager.updatePoints(StatsManager.DECK_COMPLETED);
+				if (decksCompleted == NUMBER_OF_DECKS) {
+					gameWon();
 				}
+				return true;
 			}
 			return false;
 		}
@@ -759,6 +656,8 @@ public class Game extends Activity {
 		@Override
 		public void onAnimationEnd(Animation animation) {
 			container.removeView(card);
+			Move lastmove = moves.get(moves.size() - 1);
+			lastmove.setCompletedUncovered(container.uncoverLastCard());
 		}
 
 		@Override
@@ -767,6 +666,7 @@ public class Game extends Activity {
 
 		@Override
 		public void onAnimationStart(Animation animation) {
+			card.setOnDragListener(null);
 		}
 
 	}

@@ -11,8 +11,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
-
 import com.xklakoux.freespider.enums.Number;
 import com.xklakoux.freespider.enums.Suit;
 
@@ -86,7 +84,7 @@ public class Card extends ImageView {
 			switch (action) {
 			case MotionEvent.ACTION_DOWN:
 
-				RelativeLayout owner = (RelativeLayout) v.getParent();
+				Pile owner = (Pile) v.getParent();
 				int index = owner.indexOfChild(v);
 				Card card = (Card) v;
 
@@ -142,13 +140,13 @@ public class Card extends ImageView {
 
 	private class MyDragShadowBuilder extends View.DragShadowBuilder {
 
-		RelativeLayout rl;
+		Pile pile;
 		Card card;
 		MotionEvent event;
 
-		private MyDragShadowBuilder(RelativeLayout rl, Card card, MotionEvent event) {
-			super(rl);
-			this.rl = rl;
+		private MyDragShadowBuilder(Pile pile, Card card, MotionEvent event) {
+			super(pile);
+			this.pile = pile;
 			this.card = card;
 			this.event = event;
 		}
@@ -162,14 +160,14 @@ public class Card extends ImageView {
 			width = getView().getWidth();
 			height = getView().getHeight();
 			size.set(width, height);
-			touch.set((int) event.getX(), calculateMarginTop(rl, card) + (int) event.getY());
+			touch.set((int) event.getX(), calculateMarginTop(pile, card) + (int) event.getY());
 
 		}
 
-		private int calculateMarginTop(RelativeLayout rl, Card cardStart) {
+		private int calculateMarginTop(Pile pile, Card cardStart) {
 			int marginTop = 0;
-			for (int i = 1; i < rl.indexOfChild(cardStart); i++) {
-				Card card = (Card) rl.getChildAt(i);
+			for (int i = 0; i < pile.indexOfCard(cardStart); i++) {
+				Card card = pile.getCardAt(i);
 				float tempMargin = card.isFaceup() ? getResources().getDimension(R.dimen.card_stack_margin_up)
 						: getResources().getDimension(R.dimen.card_stack_margin_down);
 				marginTop += tempMargin;

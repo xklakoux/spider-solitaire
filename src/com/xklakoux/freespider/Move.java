@@ -7,18 +7,17 @@ import com.xklakoux.freespider.enums.Suit;
  * 
  */
 public class Move {
-
-	public static final int ACTION_MOVE_UNCOVER = 0;
-	public static final int ACTION_COMPLETE = 1;
-	public static final int ACTION_COMPLETE_UNCOVER = 2;
-	public static final int ACTION_MOVE = 3;
-	public static final int ACTION_DEAL = 4;
+	public static final int ACTION_MOVE = 0;
+	public static final int ACTION_DEAL = 1;
 
 	private int amount;
 	private int from;
 	private int to;
 	private Suit suit;
 	private final int action;
+	private boolean uncover;
+	private boolean completed;
+	private boolean completedUncovered;
 
 	public Move(int amount, int from, int to, Suit suit, int action) {
 		super();
@@ -70,5 +69,29 @@ public class Move {
 
 	public Suit getSuit() {
 		return suit;
+	}
+
+	public boolean isUncover() {
+		return uncover;
+	}
+
+	public void setUncover(boolean uncover) {
+		this.uncover = uncover;
+	}
+
+	public boolean isCompleted() {
+		return completed;
+	}
+
+	public void setCompleted(boolean completed) {
+		this.completed = completed;
+	}
+
+	public boolean isCompletedUncovered() {
+		return completedUncovered;
+	}
+
+	public void setCompletedUncovered(boolean completedUncovered) {
+		this.completedUncovered = completedUncovered;
 	};
 }

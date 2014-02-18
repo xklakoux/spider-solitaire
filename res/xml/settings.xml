@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="Settings" >
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="checkboxPref"
+            android:summary="Be able to deal with all tableaus filled"
+            android:title="Unrestricted deal" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="checkboxPref"
+            android:summary="Gray out cards that cannot be taken"
+            android:title="Show card hints" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="checkboxPref"
+            android:summary="This preference can be true or false"
+            android:title="Checkbox Preference" />
+
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/diffTypes"
+            android:entryValues="@array/listValues"
+            android:key="difficulty"
+            android:summary="Choose number of decks used"
+            android:title="Settings" />
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/animTypes"
+            android:entryValues="@array/animValues"
+            android:key="animationSpeed"
+            android:summary="Change speed of animations"
+            android:title="Animation speed" />
+        
+        <ListPreference
+            android:defaultValue="1"
+            android:entries="@array/orientationTypes"
+            android:entryValues="@array/orientationValues"
+            android:key="animationSpeed"
+            android:summary="Set fixed screen orientation"
+            android:title="Orientation" />
+
+<!--         <PreferenceScreen -->
+<!--             android:key="SecondPrefScreen" -->
+<!--             android:summary="This is a sub PreferenceScreen" -->
+<!--             android:title="Secondary Level" > -->
+<!--             <intent -->
+<!--                 android:action="android.intent.action.VIEW" -->
+<!--                 android:targetClass="com.as400samplecode.Preferences2" -->
+<!--                 android:targetPackage="com.as400samplecode" /> -->
+<!--         </PreferenceScreen> -->
+
+<!--         <Preference -->
+<!--             android:key="customPref" -->
+<!--             android:summary="This works almost like a button" -->
+<!--             android:title="Custom Preference" /> -->
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -17,6 +17,7 @@ public class StatsManager {
 	public static final int DECK_COMPLETED = 0;
 	public static final int MOVE = 1;
 	public static final int CLEAR = 2;
+	public static final int DECK_UNDID = 3;
 	long timeWhenStopped = 0;
 
 	private int score = 500;
@@ -40,6 +41,9 @@ public class StatsManager {
 		switch(action) {
 		case DECK_COMPLETED:
 			score+=100;
+			break;
+		case DECK_UNDID:
+			score-=100;
 			break;
 		case MOVE:
 			score--;
