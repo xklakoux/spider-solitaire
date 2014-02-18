@@ -34,6 +34,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.squareup.otto.Subscribe;
 import com.xklakoux.freespider.enums.Difficulty;
 import com.xklakoux.freespider.enums.GameState;
 import com.xklakoux.freespider.enums.Number;
@@ -84,6 +85,8 @@ public class Game extends Activity {
 		setContentView(R.layout.game_layout);
 		findViewsSetListenersAndManagers();
 		setupDeckMeasurements();
+		App.getBus().register(this);
+
 	}
 
 	@Override
@@ -111,15 +114,34 @@ public class Game extends Activity {
 			pile.setOnDragListener(new PileOnDragListener());
 		}
 
+
 		deck = (ImageView) findViewById(R.id.deck);
 		deck.setOnClickListener(new OnDeckClickListener());
 		deck.setVisibility(View.INVISIBLE);
+
 		root = (RelativeLayout) findViewById(R.id.root);
 
 		TextView score = (TextView) findViewById(R.id.tvScore);
 		TextView movesCount = (TextView) findViewById(R.id.tvMoves);
 		Chronometer time = (Chronometer) findViewById(R.id.tvTimeElapsed);
 		statsManager = new StatsManager(Game.this, score, movesCount, time);
+
+		refreshResources();
+	}
+
+	@SuppressWarnings("deprecation")
+	public void refreshResources() {
+
+		String reverseResName = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
+		deck.setImageResource((Utils.getResId("reverse_"+reverseResName, R.drawable.class)));
+
+		for(Pile pile: pileLayouts) {
+			pile.refreshResources();
+		}
+
+		String backgroundResName = App.getSettings().getString(Constant.SETT_BACKGROUND, Constant.DEFAULT_BACKGROUND);
+		root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_"+backgroundResName, R.drawable.class)))));
+
 	}
 
 	class OnDeckClickListener implements OnClickListener {
@@ -374,6 +396,7 @@ public class Game extends Activity {
 			Intent settingsActivity = new Intent(getBaseContext(),
 					SettingsDialog.class);
 			startActivity(settingsActivity);
+
 			//			showSettings();
 		default:
 			return super.onOptionsItemSelected(item);
@@ -696,6 +719,11 @@ public class Game extends Activity {
 	public void onConfigurationChanged(Configuration newConfig) {
 		super.onConfigurationChanged(newConfig);
 		setupDeckMeasurements();
+	}
+
+	@Subscribe
+	public void answerAvailable(Object o) {
+		refreshResources();
 	}
 
 }

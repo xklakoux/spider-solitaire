@@ -108,5 +108,12 @@ public class Pile extends RelativeLayout {
 		toPile.addCard(movedCard);
 	}
 
+	public void refreshResources() {
+		for(int i=0;i<getCardsCount();i++) {
+			Card c = getCardAt(i);
+			c.setFaceup(c.isFaceup());
+		}
+	}
+
 
 }

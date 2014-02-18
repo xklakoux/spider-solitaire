@@ -7,21 +7,40 @@
     <string name="you_won">You won!</string>
     <string name="all_tableaus_should_be_filled">All tableaus should be filled before dealing</string>
     <string name="uncover_all_cards_first">Uncover all cards first</string>
+    <string name="settings">Settings</string>
+    <string name="set_number_of_decks_in_game">Set number of decks in game</string>
+    <string name="difficulty">Difficulty</string>
+    <string name="be_able_to_deal_with_all_tableaus_filled">Be able to deal with all tableaus filled</string>
+    <string name="unrestricted_deal">Unrestricted deal</string>
+    <string name="gray_out_cards_that_cannot_be_taken">Gray out cards that cannot be taken</string>
+    <string name="show_card_hints">Show card hints</string>
+    <string name="turn_on_off_sounds">Turn on/off sounds</string>
+    <string name="sounds">Sounds</string>
+    <string name="set_different_card_reverse_image">Set different card reverse image</string>
+    <string name="card_reverse">Card reverse</string>
+    <string name="set_different_card_image_set">Set different card image set</string>
+    <string name="card_image_set">Card image set</string>
+    <string name="set_background_image">Set background image</string>
+    <string name="background">Background</string>
+    <string name="change_speed_of_animations">Change speed of animations</string>
+    <string name="animation_speed">Animation speed</string>
+    <string name="set_fixed_screen_orientation">Set fixed screen orientation</string>
+    <string name="orientation">Orientation</string>
 
     <string-array name="diffTypes">
         <item>Easy</item>
         <item>Medium</item>
         <item>Hard</item>
     </string-array>
-    <string-array name="listValues">
+    <string-array name="diffValues">
         <item>1</item>
         <item>2</item>
         <item>3</item>
     </string-array>
     <string-array name="animTypes">
-        <item>No animations</item>
-        <item>Fast</item>
         <item>Slow</item>
+        <item>Fast</item>
+        <item>No animations</item>
     </string-array>
     <string-array name="animValues">
         <item>1</item>
@@ -37,6 +56,10 @@
         <item>1</item>
         <item>2</item>
         <item>3</item>
+    </string-array>
+    <string-array name="images">
+        <item>@drawable/reverse_0</item>
+        <item>@drawable/reverse_1</item>
     </string-array>
 
 </resources>

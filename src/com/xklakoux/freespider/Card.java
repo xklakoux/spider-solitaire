@@ -25,13 +25,15 @@ public class Card extends ImageView {
 	private Suit suit;
 	private Number number;
 	private boolean faceup = false;
+	private final int reverseResourceId = (Utils.getResId("reverse_"+App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE),R.drawable.class));
+
 
 	public Card(Context context, Suit suit, Number number) {
 		super(context);
 		this.suit = suit;
 		this.number = number;
 		setAdjustViewBounds(true);
-		setImageResource(R.drawable.reverse_0);
+		setImageResource(reverseResourceId);
 		setOnTouchListener(new CardTouchListener());
 	}
 
@@ -66,9 +68,11 @@ public class Card extends ImageView {
 	public void setFaceup(boolean faceup) {
 		this.faceup = faceup;
 		if (faceup) {
-			setImageResource(Utils.getResId(suit.getName() + "_" + number.getId(), R.drawable.class));
+			String index = App.getSettings().getString(Constant.SETT_CARD_SET, Constant.DEFAULT_CARD_SET);
+			setImageResource(Utils.getResId(suit.getName() + "_" + number.getId()+"_"+index, R.drawable.class));
 		} else {
-			setImageResource(R.drawable.reverse_0);
+			String index = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
+			setImageResource(Utils.getResId("reverse_"+index, R.drawable.class));
 		}
 	}
 

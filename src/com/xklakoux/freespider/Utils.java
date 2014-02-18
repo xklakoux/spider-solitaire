@@ -20,7 +20,6 @@ public class Utils {
 			Field idField = c.getDeclaredField(variableName);
 			return idField.getInt(idField);
 		} catch (Exception e) {
-			e.printStackTrace();
 			return -1;
 		}
 	}
