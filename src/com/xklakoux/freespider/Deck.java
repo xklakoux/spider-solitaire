@@ -110,7 +110,7 @@ public class Deck extends RelativeLayout {
 		for (ImageView ten : tens) {
 			ten.setImageResource((Utils.getResId("reverse_" + reverseResName, R.drawable.class)));
 
-			MarginLayoutParams marginParams = new MarginLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
+			MarginLayoutParams marginParams = new MarginLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT,
 					LayoutParams.WRAP_CONTENT));
 			marginParams.setMargins(0, (int) stackMargin * i, 0, 0);
 			Deck.LayoutParams layoutParams = new Deck.LayoutParams(marginParams);
