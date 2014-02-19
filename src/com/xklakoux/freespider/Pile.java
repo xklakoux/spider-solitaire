@@ -4,9 +4,9 @@
 package com.xklakoux.freespider;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
@@ -25,14 +25,14 @@ public class Pile extends RelativeLayout {
 		init();
 	}
 
-	public Pile(Context context, AttributeSet attrs, int defStyle) {
-		super(context, attrs, defStyle);
-
-	}
-
-	public Pile(Context context) {
-		super(context);
-	}
+	//	public Pile(Context context, AttributeSet attrs, int defStyle) {
+	//		super(context, attrs, defStyle);
+	//
+	//	}
+	//
+	//	public Pile(Context context) {
+	//		super(context);
+	//	}
 
 	public Card getCardAt(int index) {
 		return (Card) super.getChildAt(index + 1);
@@ -60,8 +60,8 @@ public class Pile extends RelativeLayout {
 		return true;
 	}
 
-	public View getLastTrueChild() {
-		return super.getChildAt(super.getChildCount() - 1);
+	public ImageView getLastTrueChild() {
+		return (ImageView) super.getChildAt(super.getChildCount() - 1);
 	}
 
 	public ImageView getFirstCardSpot() {
@@ -93,7 +93,7 @@ public class Pile extends RelativeLayout {
 
 	public void addCard(Card movedCard) {
 
-		int marginTop = Utils.calculateMarginTop(this);
+		int marginTop = calculateMarginTop(this);
 
 		MarginLayoutParams marginParams = new MarginLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
@@ -108,11 +108,24 @@ public class Pile extends RelativeLayout {
 		toPile.addCard(movedCard);
 	}
 
-	public void refreshResources() {
+	public void refresh() {
 		for(int i=0;i<getCardsCount();i++) {
 			Card c = getCardAt(i);
 			c.setFaceup(c.isFaceup());
+			c.setColorFilter(Color.TRANSPARENT);
 		}
+	}
+
+	private int calculateMarginTop(Pile pile) {
+		int marginTop = 0;
+		Context context = App.getAppContext();
+		for (int i = 0; i < pile.getCardsCount(); i++) {
+			Card card = pile.getCardAt(i);
+			float tempMargin = card.isFaceup() ? context.getResources().getDimension(R.dimen.card_stack_margin_up)
+					: context.getResources().getDimension(R.dimen.card_stack_margin_down);
+			marginTop += tempMargin;
+		}
+		return marginTop;
 	}
 
 

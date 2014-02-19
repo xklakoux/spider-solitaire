@@ -1,18 +1,23 @@
 package com.xklakoux.freespider;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
+
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.DragEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -29,8 +34,10 @@ import android.view.animation.TranslateAnimation;
 import android.widget.ArrayAdapter;
 import android.widget.Chronometer;
 import android.widget.ImageView;
-import android.widget.ImageView.ScaleType;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.RelativeLayout.LayoutParams;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -40,9 +47,7 @@ import com.xklakoux.freespider.enums.GameState;
 import com.xklakoux.freespider.enums.Number;
 import com.xklakoux.freespider.enums.Suit;
 
-public class Game extends Activity {
-
-	private static final int START_CARDS_DEAL_COUNT = 54;
+public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 	private StatsManager statsManager;
 
@@ -52,41 +57,80 @@ public class Game extends Activity {
 
 	public final String TAG = Game.class.getSimpleName();
 
-	private final int FULL_NUMBER_SET = 13;
-
-	private static int decksCompleted = 0;
-
-	final public int LEVEL_EASY = 1;
-	final public int LEVEL_MEDIUM = 2;
-	final public int LEVEL_HARD = 4;
-
-	final public int NUMBER_OF_DECKS = 8;
-
 	private RelativeLayout root;
 
 	static List<Pile> pileLayouts;
-	final List<LinkedList<Card>> piles = new LinkedList<LinkedList<Card>>();
 
-	private ImageView deck;
+	public static String GAME_WON = "won";
+	public static String GAME_STILL_NOT_WON ="still not won";
+
+
+	private Deck deck;
 	private TextView winner;
+	private ScrollView scrollPiles;
+	private LinearLayout piles;
+	private RelativeLayout hollowPile;
+	private RelativeLayout statsLayout;
 
-	private Difficulty chosenDifficulty = Difficulty.valueOf(App.getSettings().getString("difficulty", "MEDIUM"));
+	private Difficulty chosenDifficulty;
 
-	public List<Card> allCards = new LinkedList<Card>();
+	private String chosenOrientation;
+	private float chosenAnimationSpeed;
+	private boolean chosenSound;
+	private boolean chosenUnrestrictedDeal;
+	private boolean chosenUnrestrictedUndo;
+	private boolean chosenHints;
 
-	private int cardsDealt = 0;
-	boolean dealingRightNow = false;
+	private SharedPreferences prefs;
 
 	boolean onCreate = false;
+
+	int cardWidth;
+	int cardHeight;
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.game_layout);
+		initSettings();
 		findViewsSetListenersAndManagers();
-		setupDeckMeasurements();
+		fixLayoutOrientation(getResources().getConfiguration().orientation);
+		getCardDimensions();
 		App.getBus().register(this);
 
+	}
+
+	@SuppressLint("DefaultLocale")
+	private void initSettings() {
+		prefs = PreferenceManager.getDefaultSharedPreferences(App.getAppContext());
+		prefs.registerOnSharedPreferenceChangeListener(this);
+
+		chosenDifficulty = Difficulty.valueOf(prefs.getString(Constant.SETT_DIFFICULTY, "EASY").toUpperCase());
+
+		chosenOrientation = prefs.getString(Constant.SETT_ORIENTATION, "auto");
+		if (chosenOrientation.equals("horizontal")) {
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+		} else if (chosenOrientation.equals("vertical")) {
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		} else {
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+		}
+
+		chosenSound = prefs.getBoolean(Constant.SETT_SOUNDS, true);
+		chosenUnrestrictedDeal = prefs.getBoolean(Constant.SETT_UNRES_DEAL, false);
+		chosenUnrestrictedUndo = prefs.getBoolean(Constant.SETT_UNRES_UNDO, false);
+
+		chosenHints = prefs.getBoolean(Constant.SETT_HINTS, true);
+
+		String speed = prefs.getString(Constant.SETT_ANIMATION, "slow");
+		if (speed.equals("slow")) {
+			chosenAnimationSpeed = 1.0f;
+		} else if (speed.equals("fast")) {
+			chosenAnimationSpeed = 0.5f;
+		} else if (speed.equals("superfast")) {
+			chosenAnimationSpeed = 0.0f;
+		}
 	}
 
 	@Override
@@ -97,6 +141,11 @@ public class Game extends Activity {
 
 	private void findViewsSetListenersAndManagers() {
 		winner = (TextView) findViewById(R.id.winner);
+
+		scrollPiles = (ScrollView) findViewById(R.id.scrollPiles);
+		piles = (LinearLayout) findViewById(R.id.piles);
+		hollowPile = (Pile) findViewById(R.id.hollowPile);
+		statsLayout = (RelativeLayout) findViewById(R.id.stats);
 
 		pileLayouts = new LinkedList<Pile>();
 		pileLayouts.add((Pile) findViewById(R.id.pile0));
@@ -114,10 +163,9 @@ public class Game extends Activity {
 			pile.setOnDragListener(new PileOnDragListener());
 		}
 
-
-		deck = (ImageView) findViewById(R.id.deck);
+		deck = (Deck) findViewById(R.id.deck);
 		deck.setOnClickListener(new OnDeckClickListener());
-		deck.setVisibility(View.INVISIBLE);
+		deck.setSize(cardWidth, cardHeight);
 
 		root = (RelativeLayout) findViewById(R.id.root);
 
@@ -132,15 +180,13 @@ public class Game extends Activity {
 	@SuppressWarnings("deprecation")
 	public void refreshResources() {
 
-		String reverseResName = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
-		deck.setImageResource((Utils.getResId("reverse_"+reverseResName, R.drawable.class)));
-
-		for(Pile pile: pileLayouts) {
-			pile.refreshResources();
+		for (Pile pile : pileLayouts) {
+			pile.refresh();
 		}
-
+		deck.refresh();
 		String backgroundResName = App.getSettings().getString(Constant.SETT_BACKGROUND, Constant.DEFAULT_BACKGROUND);
-		root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_"+backgroundResName, R.drawable.class)))));
+		root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_" + backgroundResName,
+				R.drawable.class)))));
 
 	}
 
@@ -149,30 +195,22 @@ public class Game extends Activity {
 		@Override
 		public void onClick(View v) {
 
-			if (!cardsCorrect()) {
+			if(deck.isEmpty()) {
 				return;
 			}
-
+			if (!chosenUnrestrictedDeal && !cardsCorrect()) {
+				return;
+			}
 			if (gameState != GameState.STARTED) {
 				return;
 			}
-
 			int i = 0;
 			gameState = GameState.DEALING;
 			for (Pile pile : pileLayouts) {
-				Card possiblyCovered = pile.getLastCard();
-				if (!possiblyCovered.isFaceup()) {
-					Toast.makeText(Game.this, R.string.uncover_all_cards_first, Toast.LENGTH_SHORT).show();
-					return;
-				}
-				Card card = allCards.get(0);
+				Card card = deck.getCard();
 				dealCard(pile, card, true, i++, false);
-				allCards.remove(0);
 			}
 
-			if (allCards.isEmpty()) {
-				deck.setVisibility(View.INVISIBLE);
-			}
 			moves.add(new Move(Move.ACTION_DEAL));
 		}
 
@@ -201,29 +239,15 @@ public class Game extends Activity {
 	private void dealCard(Pile pile, Card card, boolean faceup, int hundredMillisecondOffset, boolean isNewGameDeal) {
 
 		int[] deckLocation = new int[2];
-		deck.getLocationOnScreen(deckLocation);
-		Log.d(TAG + " deckLocations", deckLocation[0] + " " + deckLocation[1]);
-
+		deck.getLastVisible().getLocationOnScreen(deckLocation);
 		int statusBarOffsetY = getStatusBarOffset();
 
 		int[] location = new int[2];
 		pile.getLastTrueChild().getLocationOnScreen(location);
-		Log.d(TAG + " locations", location[0] + " " + location[1]);
-
 		final Card fakeCard = new Card(Game.this, Suit.SPADES, Number.ACE);
 		root.addView(fakeCard);
-
-		ViewTreeObserver vto = pileLayouts.get(0).getViewTreeObserver();
-		vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
-			@SuppressWarnings("deprecation")
-			@Override
-			public void onGlobalLayout() {
-				pileLayouts.get(0).getViewTreeObserver().removeGlobalOnLayoutListener(this);
-				fakeCard.getLayoutParams().width = pileLayouts.get(0).getMeasuredWidth();
-				fakeCard.setScaleType(ScaleType.CENTER_INSIDE);
-
-			}
-		});
+		setCardSize(fakeCard);
+		fakeCard.setOnTouchListener(null);
 
 		float horizontalMargin = getResources().getDimension(R.dimen.activity_horizontal_margin);
 		float verticalMargin = getResources().getDimension(R.dimen.activity_vertical_margin);
@@ -245,9 +269,11 @@ public class Game extends Activity {
 				fromY, Animation.ABSOLUTE, toY);
 
 		anim.setInterpolator(new DecelerateInterpolator(2.0f));
-		anim.setDuration(400);
-		anim.setStartOffset(hundredMillisecondOffset++ * 50);
-		anim.setAnimationListener(new DealAnimationListener(pile, card, root, fakeCard));
+		anim.setDuration((long) (700.0 * chosenAnimationSpeed) + 100);
+		int startOffset = hundredMillisecondOffset * 5
+				+ (hundredMillisecondOffset * ((int) (100.0 * chosenAnimationSpeed)));
+		anim.setStartOffset(startOffset);
+		anim.setAnimationListener(new DealAnimationListener(pile, card, root, fakeCard, isNewGameDeal));
 		fakeCard.setAnimation(anim);
 
 		card.setFaceup(faceup);
@@ -259,25 +285,35 @@ public class Game extends Activity {
 		private final Card card;
 		private final Card fakeAnimCard;
 		private final RelativeLayout root;
+		private final boolean isNewGameDeal;
 
-		public DealAnimationListener(Pile container, Card card, RelativeLayout root, Card fakeAnimCard) {
+		public DealAnimationListener(Pile container, Card card, RelativeLayout root, Card fakeAnimCard,
+				boolean isNewGameDeal) {
 			this.container = container;
 			this.card = card;
 			this.fakeAnimCard = fakeAnimCard;
 			this.root = root;
+			this.isNewGameDeal = isNewGameDeal;
 		}
 
 		@Override
 		public void onAnimationEnd(Animation animation) {
 			container.addCard(card);
+			if (checkFullSetAndClear(container)) {
+				Move lastMove = moves.get(moves.size() - 1);
+				lastMove.setCompleted(true);
+				lastMove.setFrom(pileLayouts.indexOf(container));
+			}
 			root.removeView(fakeAnimCard);
-			cardsDealt++;
-			if (cardsDealt == START_CARDS_DEAL_COUNT) {
+
+			deck.addCardDealt();
+			//			cardsDealt++;
+			if(deck.isFullDeal()) {
 				gameState = GameState.STARTED;
+			}
+			if (deck.isStartDeal()) {
 				statsManager.clearStatsAndGo();
 			}
-			Log.d(TAG, "endin'");
-			gameState = GameState.STARTED;
 		}
 
 		@Override
@@ -286,85 +322,22 @@ public class Game extends Activity {
 
 		@Override
 		public void onAnimationStart(Animation animation) {
-			Log.d(TAG, "dealin'");
-			gameState = GameState.DEALING;
 		}
 
 	}
 
-	private void setupDeckMeasurements() {
-		ViewTreeObserver vto = pileLayouts.get(0).getFirstCardSpot().getViewTreeObserver();
-		vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
-			@SuppressWarnings("deprecation")
-			@Override
-			public void onGlobalLayout() {
-				pileLayouts.get(0).getViewTreeObserver().removeGlobalOnLayoutListener(this);
-				deck.getLayoutParams().width = pileLayouts.get(0).getFirstCardSpot().getMeasuredWidth();
-				deck.getLayoutParams().height = pileLayouts.get(0).getFirstCardSpot().getMeasuredHeight();
-				deck.setAdjustViewBounds(true);
-				if (onCreate && gameState == GameState.NOT_STARTED) {
-					setupNewGame();
-				}
-			}
-		});
-	}
 
-	private List<Card> chooseDecks(Difficulty difficulty) {
-
-		List<Card> cards = new LinkedList<Card>();
-
-		int spades = 0, clubs = 0, diamonds = 0, hearts = 0;
-		switch (difficulty) {
-		case EASY:
-			spades = 8;
-			break;
-		case MEDIUM:
-			spades = 4;
-			hearts = 4;
-			break;
-		case HARD:
-			clubs = 2;
-			hearts = 2;
-			spades = 2;
-			diamonds = 2;
-			break;
-		}
-
-		for (int a = 0; a < spades; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(this, Suit.SPADES, num));
-			}
-		}
-		for (int a = 0; a < clubs; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(this, Suit.CLUBS, num));
-			}
-		}
-		for (int a = 0; a < diamonds; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(this, Suit.DIAMONDS, num));
-			}
-		}
-		for (int a = 0; a < hearts; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(this, Suit.HEARTS, num));
-			}
-		}
-
-		return cards;
-	}
 
 	private void dealNewGame() {
-
-		for (int k = 0; k < START_CARDS_DEAL_COUNT; k++) {
+		gameState = GameState.DEALING;
+		for (int k = 0; k < Deck.START_CARDS_DEAL_COUNT; k++) {
 			Pile pile = pileLayouts.get(k % 10);
 
-			Card card = allCards.get(0);
+			Card card = deck.getCard();
 
-			boolean faceUp = START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
+			boolean faceUp = Deck.START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
 			dealCard(pile, card, faceUp, k, true);
 
-			allCards.remove(0);
 		}
 	}
 
@@ -381,7 +354,7 @@ public class Game extends Activity {
 		// Handle presses on the action bar items
 		switch (item.getItemId()) {
 		case R.id.action_undo:
-			undo();
+			undo(true);
 			return true;
 		case R.id.action_new_game:
 			if (gameState == GameState.STARTED) {
@@ -392,12 +365,18 @@ public class Game extends Activity {
 				setupNewGame();
 			}
 			return true;
+		case R.id.action_restart:
+			if (gameState == GameState.STARTED) {
+				restartGameDialog();
+			} else if (gameState == GameState.DEALING) {
+				// do nothing
+			}
+			return true;
 		case R.id.action_settings:
-			Intent settingsActivity = new Intent(getBaseContext(),
-					SettingsDialog.class);
+			Intent settingsActivity = new Intent(getBaseContext(), SettingsDialog.class);
 			startActivity(settingsActivity);
 
-			//			showSettings();
+			// showSettings();
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -405,16 +384,16 @@ public class Game extends Activity {
 
 	private void showNewGameDialog() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
-		builder.setMessage("Current progress will be lost. Are you sure you want to start new game?");
-		builder.setTitle("Start new game");
-		builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+		builder.setMessage(R.string.current_progress_will_be_lost_message);
+		builder.setTitle(R.string.start_new_game_alert_dialog_title);
+		builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
 				setupNewGame();
 			}
 		});
-		builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+		builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
@@ -425,23 +404,48 @@ public class Game extends Activity {
 		dialog.show();
 	}
 
-	private void setupNewGame() {
+	private void restartGameDialog() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
+		builder.setMessage(R.string.current_progress_will_be_lost_message);
+		builder.setTitle(R.string.restart_game_alert_dialog_title);
+		builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
 
-		chosenDifficulty = Difficulty.valueOf(App.getSettings().getString("difficulty", "MEDIUM"));
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				restartGame();
+			}
+
+		});
+		builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dialog.dismiss();
+			}
+		});
+		AlertDialog dialog = builder.create();
+		dialog.show();
+	}
+
+	private void restartGame() {
+		for (int i = 0; i < moves.size();) {
+			undo(false);
+		}
 		moves.clear();
-		decksCompleted = 0;
-		cardsDealt = 0;
+		statsManager.clearStatsAndGo();
+	}
+
+	private void setupNewGame() {
+		gameState = GameState.DEALING;
+		moves.clear();
+
 		for (Pile pileLayout : pileLayouts) {
 			pileLayout.removeViews(1, pileLayout.getCardsCount());
 		}
-		allCards = chooseDecks(chosenDifficulty);
-		Collections.shuffle(allCards);
+		deck.initialize(chosenDifficulty, Game.this);
 		dealNewGame();
-		winner.setVisibility(View.GONE);
-		deck.setVisibility(View.VISIBLE);
 		statsManager.timeStop();
 	}
-
 
 	private void showSettings() {
 		AlertDialog.Builder builderSingle = new AlertDialog.Builder(Game.this);
@@ -489,13 +493,20 @@ public class Game extends Activity {
 		builderSingle.show();
 	}
 
-	private void undo() {
-		if (moves.isEmpty() || gameState == GameState.FINISHED) {
+	private void undo(boolean human) {
+		if (moves.isEmpty()) {
 			return;
 		}
+
+		winner.setVisibility(View.GONE);
 		int indexOfFirstDragged;
 
 		Move move = moves.pop();
+
+		if(move.getAction()==Move.ACTION_DEAL && human && chosenUnrestrictedUndo) {
+			return;
+		}
+
 		Pile landingContainer = pileLayouts.get(move.getFrom());
 		Pile draggedParent = pileLayouts.get(move.getTo());
 
@@ -504,8 +515,8 @@ public class Game extends Activity {
 		}
 
 		if (move.isCompleted()) {
-			decksCompleted--;
-			statsManager.updatePoints(StatsManager.DECK_UNDID);
+			deck.setUndid();
+			statsManager.updatePoints(StatsManager.SET_UNDID);
 
 			for (Number num : Number.values()) {
 				Card card = new Card(Game.this, move.getSuit(), num);
@@ -524,22 +535,19 @@ public class Game extends Activity {
 
 		case Move.ACTION_MOVE:
 			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
-			Log.d(TAG, "indexOfFirstDragged: " + indexOfFirstDragged + " amount: " + move.getAmount());
 			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
 				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
 			}
 			break;
 
 		case Move.ACTION_DEAL:
-			if (allCards.isEmpty()) {
-				deck.setVisibility(View.VISIBLE);
-			}
-			for (Pile pile : pileLayouts) {
 
-				Card card = pile.getLastCard();
+			for (int i = pileLayouts.size() - 1; i >= 0; i--) {
+				Card card = pileLayouts.get(i).getLastCard();
 				card.setFaceup(false);
-				allCards.add(0, card);
-				pile.removeLastCard();
+				deck.addCard(card);
+				pileLayouts.get(i).removeLastCard();
+				checkFullSetAndClear(pileLayouts.get(i));
 			}
 			break;
 		}
@@ -564,24 +572,30 @@ public class Game extends Activity {
 			int indexOfDragged = draggedParent.indexOfCard(draggedCard);
 
 			Pile landingContainer = (Pile) v;
+			ImageView glowing = landingContainer.getLastTrueChild();
 
 			switch (event.getAction()) {
 			case DragEvent.ACTION_DRAG_STARTED:
 				break;
 			case DragEvent.ACTION_DRAG_ENTERED:
+				if (landingContainer != draggedParent) {
+					glowing.setColorFilter(getResources().getColor(R.color.highlight));
+				}
 				break;
 			case DragEvent.ACTION_DRAG_EXITED:
+				glowing.setColorFilter(Color.TRANSPARENT);
+				// }
 				break;
 			case DragEvent.ACTION_DROP:
-				Log.d(TAG, "drop");
+				glowing.setColorFilter(Color.TRANSPARENT);
 				if (landingContainer == draggedParent) {
-					return false;
+					break;
 				}
 				if (!landingContainer.isEmpty()) {
 					Card lastCard = landingContainer.getLastCard();
 
 					if (lastCard.getNumber().getId() != draggedCard.getNumber().getId() + 1 || !lastCard.isFaceup()) {
-						return false;
+						break;
 					}
 				}
 				int movedCards = 0;
@@ -590,7 +604,8 @@ public class Game extends Activity {
 					draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
 					movedCards++;
 				}
-				Log.d(TAG, "movedCards " + movedCards);
+				checkFullSetAndClear(draggedParent);
+
 				int indexOfDraggedParent = pileLayouts.indexOf(draggedParent);
 				int indexOfLandingParent = pileLayouts.indexOf(landingContainer);
 
@@ -605,6 +620,9 @@ public class Game extends Activity {
 				statsManager.updateMoves(StatsManager.MOVE);
 				return true;
 			case DragEvent.ACTION_DRAG_ENDED:
+				// if (!landingContainer.isEmpty()) {
+				glowing.setColorFilter(Color.TRANSPARENT);
+				// }
 				for (int i = indexOfDragged; i < draggedParent.getCardsCount(); i++) {
 					Card card = draggedParent.getCardAt(i);
 					card.setVisibility(View.VISIBLE);
@@ -616,48 +634,52 @@ public class Game extends Activity {
 			return true;
 		}
 
-		private boolean checkFullSetAndClear(Pile container) {
-			int lastIndex = container.getCardsCount() - 1;
-			int counter = 1;
-			Card referenceCard = container.getLastCard();
-			for (int i = lastIndex - 1; i >= 0; i--) {
-				Card card = container.getCardAt(i);
-				if (!(referenceCard.getSuit() == card.getSuit())
-						|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1)) || !card.isFaceup()) {
-					break;
-				}
-				referenceCard = card;
-				counter++;
+	}
 
+	private boolean checkFullSetAndClear(Pile container) {
+		container.refresh();
+		int lastIndex = container.getCardsCount() - 1;
+		int counter = 1;
+		Card referenceCard = container.getLastCard();
+		for (int i = lastIndex - 1; i >= 0; i--) {
+			Card card = container.getCardAt(i);
+			if (!(referenceCard.getSuit() == card.getSuit())
+					|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1)) || !card.isFaceup()) {
+
+				if (chosenHints) {
+					for (int j = i;container.getCardAt(j).isFaceup();j--) {
+						Card c = container.getCardAt(j);
+						c.setColorFilter(getResources().getColor(R.color.dim));
+					}
+				}
+				break;
 			}
-			Log.d(TAG, "counter " + counter);
-
-			float step = getResources().getDimension(R.dimen.card_stack_margin_up);
-
-			if (counter == FULL_NUMBER_SET) {
-				for (int i = lastIndex; i > lastIndex - FULL_NUMBER_SET; i--) {
-					Card card = container.getCardAt(i);
-					float deltaY = -(i - (lastIndex - FULL_NUMBER_SET + 1)) * step;
-
-					Animation trans = new TranslateAnimation(0.0f, 0.0f, 0.0f, deltaY);
-					trans.setInterpolator(new DecelerateInterpolator(2.0f));
-					trans.setDuration(500);
-					trans.setFillAfter(true);
-					trans.setAnimationListener(new MyAnimationListener(container, card));
-					card.startAnimation(trans);
-
-				}
-
-				decksCompleted++;
-				statsManager.updatePoints(StatsManager.DECK_COMPLETED);
-				if (decksCompleted == NUMBER_OF_DECKS) {
-					gameWon();
-				}
-				return true;
-			}
-			return false;
+			referenceCard = card;
+			counter++;
 		}
 
+
+		float step = getResources().getDimension(R.dimen.card_stack_margin_up);
+
+		if (counter == Deck.FULL_NUMBER_SET) {
+			for (int i = lastIndex; i > lastIndex - Deck.FULL_NUMBER_SET; i--) {
+				Card card = container.getCardAt(i);
+				float deltaY = -(i - (lastIndex - Deck.FULL_NUMBER_SET + 1)) * step;
+
+				Animation trans = new TranslateAnimation(0.0f, 0.0f, 0.0f, deltaY);
+				trans.setInterpolator(new DecelerateInterpolator(2.0f));
+				trans.setDuration(500);
+				trans.setFillAfter(true);
+				trans.setAnimationListener(new FullSetClearAnimationListener(container, card));
+				card.startAnimation(trans);
+
+			}
+
+			deck.setCompleted();
+			statsManager.updatePoints(StatsManager.SET_COMPLETED);
+			return true;
+		}
+		return false;
 	}
 
 	private void gameWon() {
@@ -666,12 +688,12 @@ public class Game extends Activity {
 		statsManager.timeStop();
 	}
 
-	class MyAnimationListener implements AnimationListener {
+	class FullSetClearAnimationListener implements AnimationListener {
 
 		private final Pile container;
 		private final Card card;
 
-		public MyAnimationListener(Pile container, Card card) {
+		public FullSetClearAnimationListener(Pile container, Card card) {
 			this.container = container;
 			this.card = card;
 		}
@@ -681,6 +703,7 @@ public class Game extends Activity {
 			container.removeView(card);
 			Move lastmove = moves.get(moves.size() - 1);
 			lastmove.setCompletedUncovered(container.uncoverLastCard());
+			checkFullSetAndClear(container);
 		}
 
 		@Override
@@ -712,18 +735,113 @@ public class Game extends Activity {
 	public void onWindowFocusChanged(boolean hasFocus) {
 		super.onWindowFocusChanged(hasFocus);
 		onCreate = true;
-		setupDeckMeasurements();
+		getCardDimensions();
 	}
 
 	@Override
 	public void onConfigurationChanged(Configuration newConfig) {
 		super.onConfigurationChanged(newConfig);
-		setupDeckMeasurements();
+		getCardDimensions();
+		fixLayoutOrientation(newConfig.orientation);
+	}
+
+	private void fixLayoutOrientation(int orientation) {
+
+		if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+
+			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+					LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.ALIGN_PARENT_TOP, 0);
+			params.addRule(RelativeLayout.ALIGN_PARENT_LEFT, 0);
+			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+			params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+			deck.setLayoutParams(params);
+
+			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.BELOW, 0);
+			scrollPiles.setLayoutParams(params);
+
+			hollowPile.setVisibility(View.INVISIBLE);
+			piles.setWeightSum(11f);
+
+			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.LEFT_OF, deck.getId());
+			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+			statsLayout.setLayoutParams(params);
+
+		} else if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+					LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+			params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, 0);
+			params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, 0);
+			deck.setLayoutParams(params);
+
+			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.BELOW, deck.getId());
+			scrollPiles.setLayoutParams(params);
+
+			hollowPile.setVisibility(View.GONE);
+			piles.setWeightSum(10f);
+
+			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+			params.addRule(RelativeLayout.LEFT_OF, 0);
+			statsLayout.setLayoutParams(params);
+
+		}
+	}
+
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
+		initSettings();
+
+		if (key.equals(Constant.SETT_DIFFICULTY)) {
+			setupNewGame();
+
+		} else if (key.equals(Constant.SETT_BACKGROUND) || key.equals(Constant.SETT_CARD_SET)
+				|| key.equals(Constant.SETT_REVERSE)) {
+			refreshResources();
+		} else if (key.equals(Constant.SETT_HINTS)) {
+			for(Pile pile: pileLayouts) {
+				pile.refresh();
+				checkFullSetAndClear(pile);
+			}
+		}
+	}
+
+	private void getCardDimensions() {
+		ViewTreeObserver vto = pileLayouts.get(0).getFirstCardSpot().getViewTreeObserver();
+		vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+			@SuppressWarnings("deprecation")
+			@Override
+			public void onGlobalLayout() {
+				// pileLayouts.get(0).getViewTreeObserver().removeGlobalOnLayoutListener(this);
+				cardWidth = pileLayouts.get(0).getFirstCardSpot().getMeasuredWidth();
+				cardHeight = pileLayouts.get(0).getFirstCardSpot().getMeasuredHeight();
+				deck.setSize(cardWidth, cardHeight);
+				if (onCreate && gameState == GameState.NOT_STARTED) {
+					setupNewGame();
+				}
+			}
+		});
+	}
+
+	private void setCardSize(Card card) {
+		card.getLayoutParams().width = cardWidth;
+		card.getLayoutParams().height = cardHeight;
 	}
 
 	@Subscribe
-	public void answerAvailable(Object o) {
-		refreshResources();
+	public void answerAvailable(String string) {
+		// TODO: React to the event somehow!
+		if(string.equals(Game.GAME_WON)) {
+			winner.setVisibility(View.VISIBLE);
+		}else if(string.equals(GAME_STILL_NOT_WON)) {
+			winner.setVisibility(View.GONE);
+		}
 	}
 
 }

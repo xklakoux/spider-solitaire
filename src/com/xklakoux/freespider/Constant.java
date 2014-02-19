@@ -15,4 +15,13 @@ public class Constant {
 	public static String SETT_BACKGROUND = "backgroundImage";
 	public static String SETT_REVERSE = "cardReverseImage";
 	public static String SETT_CARD_SET = "cardImageSet";
+	public static String SETT_RESOURCES = "resources";
+	public static String SETT_UNRES_DEAL = "unrestrictedDeal";
+	public static String SETT_UNRES_UNDO = "unrestrictedUndo";
+	public static String SETT_HINTS = "grayOutHints";
+	public static String SETT_SOUNDS = "sounds";
+	public static String SETT_DIFFICULTY = "difficulty";
+	public static String SETT_ANIMATION = "animation";
+	public static String SETT_ORIENTATION = "orientation";
+
 }

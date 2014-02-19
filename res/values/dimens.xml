@@ -6,5 +6,6 @@
     <dimen name="card_side_margin">2dp</dimen>
     <dimen name="card_stack_margin_down">5dp</dimen>
     <dimen name="card_stack_margin_up">15dp</dimen>
+    <dimen name="padding_drop_increase">40dp</dimen>
     
 </resources>

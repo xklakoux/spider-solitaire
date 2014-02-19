@@ -24,16 +24,4 @@ public class Utils {
 		}
 	}
 
-	public static int calculateMarginTop(Pile pile) {
-		int marginTop = 0;
-		for (int i = 0; i < pile.getCardsCount(); i++) {
-			Card card = pile.getCardAt(i);
-			float tempMargin = card.isFaceup() ? context.getResources().getDimension(R.dimen.card_stack_margin_up)
-					: context.getResources().getDimension(R.dimen.card_stack_margin_down);
-			marginTop += tempMargin;
-		}
-		return marginTop;
-	}
-
-
 }

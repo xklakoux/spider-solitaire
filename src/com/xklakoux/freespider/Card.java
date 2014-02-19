@@ -25,8 +25,9 @@ public class Card extends ImageView {
 	private Suit suit;
 	private Number number;
 	private boolean faceup = false;
-	private final int reverseResourceId = (Utils.getResId("reverse_"+App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE),R.drawable.class));
-
+	private final int reverseResourceId = (Utils
+			.getResId("reverse_" + App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE),
+					R.drawable.class));
 
 	public Card(Context context, Suit suit, Number number) {
 		super(context);
@@ -69,10 +70,10 @@ public class Card extends ImageView {
 		this.faceup = faceup;
 		if (faceup) {
 			String index = App.getSettings().getString(Constant.SETT_CARD_SET, Constant.DEFAULT_CARD_SET);
-			setImageResource(Utils.getResId(suit.getName() + "_" + number.getId()+"_"+index, R.drawable.class));
+			setImageResource(Utils.getResId(suit.getName() + "_" + number.getId() + "_" + index, R.drawable.class));
 		} else {
 			String index = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
-			setImageResource(Utils.getResId("reverse_"+index, R.drawable.class));
+			setImageResource(Utils.getResId("reverse_" + index, R.drawable.class));
 		}
 	}
 
@@ -92,11 +93,13 @@ public class Card extends ImageView {
 				int index = owner.indexOfChild(v);
 				Card card = (Card) v;
 
-				//				if (index == owner.getChildCount() - 1 && !card.isFaceup()) {
-				//					card.setFaceup(true);
-				//					GameActivity.getMoves().add(new Move(GameActivity.getPiles().indexOf(owner), Move.ACTION_UNCOVER));
-				//					return false;
-				//				}
+				// if (index == owner.getChildCount() - 1 && !card.isFaceup()) {
+				// card.setFaceup(true);
+				// GameActivity.getMoves().add(new
+				// Move(GameActivity.getPiles().indexOf(owner),
+				// Move.ACTION_UNCOVER));
+				// return false;
+				// }
 
 				if (isValidMove((Card) v)) {
 					ClipData data = ClipData.newPlainText("", "");
@@ -104,16 +107,16 @@ public class Card extends ImageView {
 						owner.getChildAt(i).setVisibility(View.INVISIBLE);
 					}
 					DragShadowBuilder shadowBuilder = new MyDragShadowBuilder(owner, card, event);
-					v.startDrag(data, shadowBuilder, v, 0);
+					if (v.startDrag(data, shadowBuilder, v, 0)) {
+						for (int i = index; i < owner.getChildCount(); i++) {
+							owner.getChildAt(i).setVisibility(View.INVISIBLE);
+						}
+					}
 					for (int i = 0; i < index; i++) {
 						owner.getChildAt(i).setVisibility(View.VISIBLE);
 					}
-					for (int i = index; i < owner.getChildCount(); i++) {
-						owner.getChildAt(i).setVisibility(View.INVISIBLE);
-					}
 					return true;
 				}
-
 			}
 			return false;
 		}

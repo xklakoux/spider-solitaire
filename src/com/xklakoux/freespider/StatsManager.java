@@ -14,10 +14,10 @@ import android.widget.TextView;
  */
 public class StatsManager {
 
-	public static final int DECK_COMPLETED = 0;
+	public static final int SET_COMPLETED = 0;
 	public static final int MOVE = 1;
 	public static final int CLEAR = 2;
-	public static final int DECK_UNDID = 3;
+	public static final int SET_UNDID = 3;
 	long timeWhenStopped = 0;
 
 	private int score = 500;
@@ -39,10 +39,10 @@ public class StatsManager {
 
 	public void updatePoints(int action) {
 		switch(action) {
-		case DECK_COMPLETED:
+		case SET_COMPLETED:
 			score+=100;
 			break;
-		case DECK_UNDID:
+		case SET_UNDID:
 			score-=100;
 			break;
 		case MOVE:

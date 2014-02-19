@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.xklakoux.freespider.enums;
 
 /**
@@ -8,7 +5,8 @@ package com.xklakoux.freespider.enums;
  * 
  */
 public enum Difficulty {
-	EASY("Easy"), MEDIUM("Medium"), HARD("Hard");
+
+	EASY("easy"), MEDIUM("medium"), HARD("hard");
 	private String name;
 
 	private Difficulty(String name) {
