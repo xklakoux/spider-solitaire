@@ -28,23 +28,21 @@
             android:key="unrestrictedDeal"
             android:summary="@string/be_able_to_deal_with_all_tableaus_filled"
             android:title="@string/unrestricted_deal" />
-        
         <CheckBoxPreference
             android:defaultValue="false"
             android:key="unrestrictedUndo"
-            android:summary="Be able to undo deck draws"
-            android:title="Unrestricted undo" />
-   
+            android:summary="@string/be_able_to_undo_deck_draws"
+            android:title="@string/unrestricted_undo" />
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="grayOutHints"
             android:summary="@string/gray_out_cards_that_cannot_be_taken"
             android:title="@string/show_card_hints" />
-<!--         <CheckBoxPreference -->
-<!--             android:defaultValue="true" -->
-<!--             android:key="sounds" -->
-<!--             android:summary="@string/turn_on_off_sounds" -->
-<!--             android:title="@string/sounds" /> -->
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="sounds"
+            android:summary="@string/turn_on_off_sounds"
+            android:title="@string/sounds" />
 
         <ListPreference
             android:defaultValue="slow"

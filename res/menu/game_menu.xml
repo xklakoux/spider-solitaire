@@ -19,6 +19,10 @@
         android:showAsAction="ifRoom"
         android:title="@string/action_settings"/>
     <item
+        android:id="@+id/action_rules"
+        android:showAsAction="ifRoom"
+        android:title="@string/rules"/>
+    <item
         android:id="@+id/action_undo"
         android:icon="@drawable/ic_action_back"
         android:showAsAction="always"

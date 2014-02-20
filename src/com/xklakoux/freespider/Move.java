@@ -93,5 +93,9 @@ public class Move {
 
 	public void setCompletedUncovered(boolean completedUncovered) {
 		this.completedUncovered = completedUncovered;
+	}
+
+	public void setSuit(Suit suit) {
+		this.suit = suit;
 	};
 }

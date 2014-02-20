@@ -49,4 +49,10 @@
         <item>Vertical</item>
     </string-array>
 
+    <string name="unrestricted_undo">Unrestricted undo</string>
+    <string name="be_able_to_undo_deck_draws">Be able to undo deck draws</string>
+    <string name="rules">Rules</string>
+    <string name="spider_solitaire_rules">Spider solitaire rules</string>
+    <string name="rules_of_spider">\tThe game is played with two decks of cards for a total of 104 cards. Fifty-four of the cards are laid out horizontally in ten columns with only the top card showing. The remaining fifty cards are laid out in the lower right hand corner in five piles of ten with no cards showing.\n\n\tIn the horizontal columns a card may be moved to any other card in the column as long as it\'s in descending numerical sequence. For example, a six of hearts may be moved to a seven of any suit. However, a sequence of cards can only be moved if they are all of the same suit in numerical descending order. For example, a six and seven of hearts may be moved to an eight of any suit, but a six of hearts and seven of clubs cannot be moved together. Moving the top card in a column allows the topmost hidden card to be turned over. This card then enters into the play. Other cards can be placed on it, and it can be moved to other cards in a sequence or to an empty column.\n\n\tThe object of the game is to uncover all the hidden cards and by moving cards from one column to another to place cards in sequential order from King to Ace using the fewest number of moves. Each final sequence must be all of the same suit. Once a complete sequence is achieved the cards are removed from the table and 100 points are added to the score. Once a player has made all the moves possible with the current card layout, the player draws a new row of cards from one of the piles of ten in the right lower hand corner by clicking on the cards. Each of the ten cards in this draw lands face up on each of the ten horizontal columns and the player then proceeds to place these in such a way to create a sequence of cards all in one suit.\n</string>
+
 </resources>

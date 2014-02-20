@@ -8,8 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
@@ -95,29 +95,44 @@ public class Deck extends RelativeLayout {
 		tens.add((ImageView) v.findViewById(R.id.ten2));
 		tens.add((ImageView) v.findViewById(R.id.ten1));
 
+		setLooks();
+	}
+
+	/**
+	 * 
+	 */
+	private void setLooks() {
+		float size = App.getAppContext().getResources().getDimension(R.dimen.card_stack_margin_down);
+		float topMargin=0;
+		float leftMargin=0;
+
+		int orientation = App.getAppContext().getResources().getConfiguration().orientation;
+
+		if(orientation==Configuration.ORIENTATION_LANDSCAPE) {
+			topMargin = size;
+		}else {
+			leftMargin = size;
+
+		}
+
+		int i = 0;
+		String reverseResName = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
+
+		for (ImageView ten : tens) {
+			ten.setImageResource((Utils.getResId("reverse_" + reverseResName, R.drawable.class)));
+			MarginLayoutParams marginParams = new MarginLayoutParams(ten.getLayoutParams());
+			marginParams.setMargins((int) leftMargin*i, (int) topMargin * i, 0, 0);
+			Deck.LayoutParams layoutParams = new Deck.LayoutParams(marginParams);
+			ten.setLayoutParams(layoutParams);
+			ten.bringToFront();
+			i++;
+		}
 	}
 
 	/**
 	 * @param chosenDifficulty
 	 */
 	public void initialize(Difficulty chosenDifficulty, Context context) {
-
-
-		int i = 0;
-		float stackMargin = App.getAppContext().getResources().getDimension(R.dimen.card_stack_margin_down);
-		String reverseResName = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
-
-		for (ImageView ten : tens) {
-			ten.setImageResource((Utils.getResId("reverse_" + reverseResName, R.drawable.class)));
-
-			MarginLayoutParams marginParams = new MarginLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT,
-					LayoutParams.WRAP_CONTENT));
-			marginParams.setMargins(0, (int) stackMargin * i, 0, 0);
-			Deck.LayoutParams layoutParams = new Deck.LayoutParams(marginParams);
-			ten.setLayoutParams(layoutParams);
-			ten.bringToFront();
-			i++;
-		}
 
 		cards.clear();
 
@@ -171,6 +186,7 @@ public class Deck extends RelativeLayout {
 			ten.getLayoutParams().width = cardWidth;
 			ten.getLayoutParams().height = cardHeight;
 		}
+		setLooks();
 	}
 
 	public void addCardDealt() {
@@ -178,7 +194,7 @@ public class Deck extends RelativeLayout {
 	}
 
 	public void setCompleted() {
-		setsCompleted--;
+		setsCompleted++;
 		if (setsCompleted == NUMBER_OF_SETS) {
 			App.getBus().post(Game.GAME_WON);
 		}
@@ -200,6 +216,7 @@ public class Deck extends RelativeLayout {
 
 	public void setUndid() {
 		setsCompleted--;
+		App.getBus().post(Game.GAME_STILL_NOT_WON);
 	}
 
 	public ImageView getLastVisible() {
@@ -210,7 +227,6 @@ public class Deck extends RelativeLayout {
 		}else {
 			index=cards.size()/10;
 		}
-		Log.d(TAG,""+(index));
 		return (ImageView) rl.getChildAt(index);
 	}
 

@@ -15,6 +15,8 @@ import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
@@ -62,8 +64,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 	static List<Pile> pileLayouts;
 
 	public static String GAME_WON = "won";
-	public static String GAME_STILL_NOT_WON ="still not won";
-
+	public static String GAME_STILL_NOT_WON = "still not won";
 
 	private Deck deck;
 	private TextView winner;
@@ -88,6 +89,8 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 	int cardWidth;
 	int cardHeight;
 
+	private final SoundPool sp = new SoundPool(54, AudioManager.STREAM_MUSIC, 0);
+	int drawSoundId = sp.load(App.getAppContext(), R.raw.draw, 1);
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -110,9 +113,9 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 		chosenOrientation = prefs.getString(Constant.SETT_ORIENTATION, "auto");
 		if (chosenOrientation.equals("horizontal")) {
-			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		} else if (chosenOrientation.equals("vertical")) {
-			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
 		} else {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
 		}
@@ -195,7 +198,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		@Override
 		public void onClick(View v) {
 
-			if(deck.isEmpty()) {
+			if (deck.isEmpty()) {
 				return;
 			}
 			if (!chosenUnrestrictedDeal && !cardsCorrect()) {
@@ -268,12 +271,12 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		Animation anim = new TranslateAnimation(Animation.ABSOLUTE, fromX, Animation.ABSOLUTE, toX, Animation.ABSOLUTE,
 				fromY, Animation.ABSOLUTE, toY);
 
-		anim.setInterpolator(new DecelerateInterpolator(2.0f));
+		anim.setInterpolator(new DecelerateInterpolator());
 		anim.setDuration((long) (700.0 * chosenAnimationSpeed) + 100);
-		int startOffset = hundredMillisecondOffset * 5
-				+ (hundredMillisecondOffset * ((int) (100.0 * chosenAnimationSpeed)));
+		int startOffset = hundredMillisecondOffset * ((int) (100.0 * chosenAnimationSpeed));
 		anim.setStartOffset(startOffset);
 		anim.setAnimationListener(new DealAnimationListener(pile, card, root, fakeCard, isNewGameDeal));
+		anim.setZAdjustment(Animation.ZORDER_TOP);
 		fakeCard.setAnimation(anim);
 
 		card.setFaceup(faceup);
@@ -302,17 +305,21 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			if (checkFullSetAndClear(container)) {
 				Move lastMove = moves.get(moves.size() - 1);
 				lastMove.setCompleted(true);
-				lastMove.setFrom(pileLayouts.indexOf(container));
+				lastMove.setSuit(card.getSuit());
+				lastMove.setTo(pileLayouts.indexOf(container));
 			}
 			root.removeView(fakeAnimCard);
 
 			deck.addCardDealt();
-			//			cardsDealt++;
-			if(deck.isFullDeal()) {
+			// cardsDealt++;
+			if (deck.isFullDeal()) {
 				gameState = GameState.STARTED;
 			}
 			if (deck.isStartDeal()) {
 				statsManager.clearStatsAndGo();
+			}
+			if (chosenSound) {
+				sp.play(drawSoundId, 1, 1, 0, 0, 1);
 			}
 		}
 
@@ -322,11 +329,12 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 		@Override
 		public void onAnimationStart(Animation animation) {
+			fakeAnimCard.setVisibility(View.VISIBLE);
+			fakeAnimCard.bringToFront();
+			root.requestLayout();
+			root.invalidate();
 		}
-
 	}
-
-
 
 	private void dealNewGame() {
 		gameState = GameState.DEALING;
@@ -376,7 +384,10 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			Intent settingsActivity = new Intent(getBaseContext(), SettingsDialog.class);
 			startActivity(settingsActivity);
 
-			// showSettings();
+			return true;
+		case R.id.action_rules:
+			showRulesDialog();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -426,6 +437,22 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		dialog.show();
 	}
 
+	private void showRulesDialog() {
+		AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
+		builder.setMessage(R.string.rules_of_spider);
+		builder.setTitle(R.string.spider_solitaire_rules);
+		builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dialog.dismiss();
+			}
+		});
+		AlertDialog dialog = builder.create();
+		dialog.setCanceledOnTouchOutside(true);
+		dialog.show();
+	}
+
 	private void restartGame() {
 		for (int i = 0; i < moves.size();) {
 			undo(false);
@@ -443,7 +470,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		}
 		deck.initialize(chosenDifficulty, Game.this);
 		dealNewGame();
-		statsManager.timeStop();
+		statsManager.setTimeZero();
 	}
 
 	private void showSettings() {
@@ -502,7 +529,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 		Move move = moves.pop();
 
-		if(move.getAction()==Move.ACTION_DEAL && human && chosenUnrestrictedUndo) {
+		if (move.getAction() == Move.ACTION_DEAL && human && chosenUnrestrictedUndo) {
 			return;
 		}
 
@@ -613,10 +640,15 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 				if (checkFullSetAndClear(landingContainer)) {
 					moves.get(moves.size() - 1).setCompleted(true);
 				}
+
 				Move lastMove = moves.get(moves.size() - 1);
 				lastMove.setUncover(draggedParent.uncoverLastCard());
 
 				statsManager.updateMoves(StatsManager.MOVE);
+
+				if (chosenSound) {
+					sp.play(drawSoundId, 1, 1, 0, 0, 1);
+				}
 				return true;
 			case DragEvent.ACTION_DRAG_ENDED:
 				// if (!landingContainer.isEmpty()) {
@@ -646,9 +678,13 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 					|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1)) || !card.isFaceup()) {
 
 				if (chosenHints) {
-					for (int j = i;container.getCardAt(j).isFaceup();j--) {
+					for (int j = i; j >= 0; j--) {
 						Card c = container.getCardAt(j);
-						c.setColorFilter(getResources().getColor(R.color.dim));
+						if (c.isFaceup()) {
+							c.setColorFilter(getResources().getColor(R.color.dim));
+						} else {
+							break;
+						}
 					}
 				}
 				break;
@@ -656,7 +692,6 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			referenceCard = card;
 			counter++;
 		}
-
 
 		float step = getResources().getDimension(R.dimen.card_stack_margin_up);
 
@@ -703,6 +738,9 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			Move lastmove = moves.get(moves.size() - 1);
 			lastmove.setCompletedUncovered(container.uncoverLastCard());
 			checkFullSetAndClear(container);
+			if (chosenSound) {
+				sp.play(drawSoundId, 1, 1, 0, 0, 1);
+			}
 		}
 
 		@Override
@@ -800,11 +838,16 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		if (key.equals(Constant.SETT_DIFFICULTY)) {
 			setupNewGame();
 
-		} else if (key.equals(Constant.SETT_BACKGROUND) || key.equals(Constant.SETT_CARD_SET)
+		} else if (key.equals(Constant.SETT_BACKGROUND)) {
+			String backgroundResName = App.getSettings().getString(Constant.SETT_BACKGROUND,
+					Constant.DEFAULT_BACKGROUND);
+			root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_" + backgroundResName,
+					R.drawable.class)))));
+
+		} else if (key.equals(Constant.SETT_HINTS) || key.equals(Constant.SETT_CARD_SET)
 				|| key.equals(Constant.SETT_REVERSE)) {
-			refreshResources();
-		} else if (key.equals(Constant.SETT_HINTS)) {
-			for(Pile pile: pileLayouts) {
+
+			for (Pile pile : pileLayouts) {
 				pile.refresh();
 				checkFullSetAndClear(pile);
 			}
@@ -836,9 +879,9 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 	@Subscribe
 	public void answerAvailable(String string) {
 		// TODO: React to the event somehow!
-		if(string.equals(Game.GAME_WON)) {
-			winner.setVisibility(View.VISIBLE);
-		}else if(string.equals(GAME_STILL_NOT_WON)) {
+		if (string.equals(Game.GAME_WON)) {
+			gameWon();
+		} else if (string.equals(GAME_STILL_NOT_WON)) {
 			winner.setVisibility(View.GONE);
 		}
 	}

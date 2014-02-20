@@ -47,14 +47,14 @@ public class SettingsDialog extends PreferenceActivity {
 			final PreferenceScreen backgroundImageList = (PreferenceScreen) findPreference(Constant.SETT_BACKGROUND);
 			backgroundImageList.setIcon(getIcon(Constant.SETT_BACKGROUND, Constant.DEFAULT_BACKGROUND, "background_"));
 
-			createPreferencesList(cardReverseList, "reverse_", "Reverse");
-			createPreferencesList(cardImageList, "spades_13_", "Set");
-			createPreferencesList(backgroundImageList, "background_", "Background");
+			createPreferencesList(cardReverseList, "reverse_icon_", "Reverse");
+			createPreferencesList(cardImageList, "spades_13_icon_", "Set");
+			createPreferencesList(backgroundImageList, "background_icon_", "Background");
 
 			final CheckBoxPreference unrestrictedDeal = (CheckBoxPreference) findPreference(Constant.SETT_UNRES_DEAL);
 			final CheckBoxPreference unrestrictedUndo = (CheckBoxPreference) findPreference(Constant.SETT_UNRES_UNDO);
 			final CheckBoxPreference hints = (CheckBoxPreference) findPreference(Constant.SETT_HINTS);
-			//			final CheckBoxPreference sounds = (CheckBoxPreference) findPreference(Constant.SETT_SOUNDS);
+			final CheckBoxPreference sounds = (CheckBoxPreference) findPreference(Constant.SETT_SOUNDS);
 
 			final ListPreference orientation = (ListPreference) findPreference(Constant.SETT_ORIENTATION);
 			final ListPreference animation = (ListPreference) findPreference(Constant.SETT_ANIMATION);
@@ -63,7 +63,7 @@ public class SettingsDialog extends PreferenceActivity {
 			unrestrictedDeal.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
 			unrestrictedUndo.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
 			hints.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
-			//			sounds.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
+			sounds.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
 
 			orientation.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
 			animation.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
@@ -80,7 +80,10 @@ public class SettingsDialog extends PreferenceActivity {
 			for (int i = 0;; i++) {
 				final int index = i;
 				Preference pref = new Preference(getActivity());
+				// final int iconResId = Utils.getResId(resourceName +"icon_"
+				// +i, R.drawable.class);
 				final int resId = Utils.getResId(resourceName + i, R.drawable.class);
+
 				if (resId < 0) {
 					break;
 				}

@@ -93,4 +93,10 @@ public class StatsManager {
 	public void timeStart() {
 		cTime.start();
 	}
+
+	public void setTimeZero() {
+		cTime.setBase(SystemClock.elapsedRealtime());
+		timeWhenStopped = 0;
+		cTime.stop();
+	}
 }
