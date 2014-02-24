@@ -128,5 +128,4 @@ public class Pile extends RelativeLayout {
 		return marginTop;
 	}
 
-
 }

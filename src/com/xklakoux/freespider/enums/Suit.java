@@ -9,7 +9,7 @@ package com.xklakoux.freespider.enums;
  */
 public enum Suit {
 
-	HEARTS("hearts"), DIAMONDS("diamonds"), CLUBS("clubs"), SPADES("spades");
+	SPADES("spades"), HEARTS("hearts"), CLUBS("clubs"), DIAMONDS("diamonds");
 	final public String name;
 
 	public String getName() {

@@ -5,6 +5,7 @@ package com.xklakoux.freespider;
 
 import android.content.Context;
 import android.os.SystemClock;
+import android.util.Log;
 import android.widget.Chronometer;
 import android.widget.TextView;
 
@@ -83,8 +84,14 @@ public class StatsManager {
 		cTime.start();
 	}
 
+	public void onGameResume(long time) {
+		cTime.setBase(SystemClock.elapsedRealtime() + time);
+		cTime.start();
+	}
+
 	public void onGamePause() {
 		timeWhenStopped = cTime.getBase() - SystemClock.elapsedRealtime();
+		Log.d("debug","timeWhenStopeed " + timeWhenStopped);
 		cTime.stop();
 	}
 	public void timeStop() {
@@ -98,5 +105,11 @@ public class StatsManager {
 		cTime.setBase(SystemClock.elapsedRealtime());
 		timeWhenStopped = 0;
 		cTime.stop();
+		updateMoves(CLEAR);
+		updatePoints(CLEAR);
+	}
+
+	public long getTimeWhenStopped() {
+		return cTime.getBase() - SystemClock.elapsedRealtime();
 	}
 }

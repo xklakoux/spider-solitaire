@@ -3,6 +3,8 @@
  */
 package com.xklakoux.freespider;
 
+import java.lang.reflect.Type;
+
 import android.content.ClipData;
 import android.content.Context;
 import android.graphics.Point;
@@ -11,6 +13,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+
+import com.google.gson.InstanceCreator;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.xklakoux.freespider.enums.Number;
 import com.xklakoux.freespider.enums.Suit;
 
@@ -36,6 +47,17 @@ public class Card extends ImageView {
 		setAdjustViewBounds(true);
 		setImageResource(reverseResourceId);
 		setOnTouchListener(new CardTouchListener());
+		setId(App.getUniqueId());
+	}
+
+	public Card(Context context, Suit suit, Number number, boolean faceUp) {
+		super(context);
+		this.suit = suit;
+		this.number = number;
+		faceup = faceUp;
+		setAdjustViewBounds(true);
+		setOnTouchListener(new CardTouchListener());
+		//		setId(App.getUniqueId());
 	}
 
 	public Card(Context context, Card card) {
@@ -182,5 +204,41 @@ public class Card extends ImageView {
 			return marginTop;
 		}
 	}
+}
 
+
+
+class CardInstanceCreator implements InstanceCreator<Card>{
+
+	@Override
+	public Card createInstance(Type arg0) {
+		return new Card(App.getAppContext(), Suit.SPADES, Number.ACE);
+	}
+
+}
+
+class CardSerializer implements JsonSerializer<Card>{
+
+	@Override
+	public JsonElement serialize(Card arg0, Type arg1, JsonSerializationContext arg2) {
+		final JsonObject json = new JsonObject();
+		json.addProperty("suit", arg0.getSuit().ordinal());
+		json.addProperty("number", arg0.getNumber().ordinal());
+		json.addProperty("faceup", arg0.isFaceup());
+		return json;
+	}
+
+}
+
+class CardDeserializer implements JsonDeserializer<Card>{
+
+	@Override
+	public Card deserialize(JsonElement arg0, Type arg1, JsonDeserializationContext arg2) throws JsonParseException {
+		JsonObject object = arg0.getAsJsonObject();
+		Suit suit = Suit.values()[object.get("suit").getAsInt()];
+		Number number = Number.values()[object.get("number").getAsInt()];
+		Boolean faceUp = object.get("faceup").getAsBoolean();
+		Card card = new Card(App.getAppContext(),suit,number,faceUp);
+		return card;
+	}
 }

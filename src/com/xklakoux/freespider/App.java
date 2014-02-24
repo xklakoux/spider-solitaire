@@ -20,6 +20,7 @@ public class App extends Application {
 	static private Context context;
 	static private Bus bus;
 	static private SettingsEvent event;
+	static private int uniqueId;
 
 	@Override
 	public void onCreate() {
@@ -40,5 +41,8 @@ public class App extends Application {
 
 	public static Bus getBus() {
 		return bus;
+	}
+	public static int getUniqueId() {
+		return uniqueId++;
 	}
 }

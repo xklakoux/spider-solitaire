@@ -1,5 +1,7 @@
 package com.xklakoux.freespider;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -11,6 +13,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -18,8 +21,9 @@ import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
+import android.os.SystemClock;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.DragEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -43,6 +47,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.squareup.otto.Subscribe;
 import com.xklakoux.freespider.enums.Difficulty;
 import com.xklakoux.freespider.enums.GameState;
@@ -55,7 +62,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 	private GameState gameState = GameState.NOT_STARTED;
 
-	private final static Stack<Move> moves = new Stack<Move>();
+	private static Stack<Move> moves = new Stack<Move>();
 
 	public final String TAG = Game.class.getSimpleName();
 
@@ -89,7 +96,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 	int cardWidth;
 	int cardHeight;
 
-	private final SoundPool sp = new SoundPool(54, AudioManager.STREAM_MUSIC, 0);
+	private final SoundPool sp = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
 	int drawSoundId = sp.load(App.getAppContext(), R.raw.draw, 1);
 
 	@Override
@@ -99,6 +106,41 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		initSettings();
 		findViewsSetListenersAndManagers();
 		fixLayoutOrientation(getResources().getConfiguration().orientation);
+		String previousMoves = App.getSettings().getString("moves", null);
+		if (previousMoves != null) {
+			onCreate = false;
+			gameState = GameState.STARTED;
+			Gson gson = new Gson();
+			Type collectionType = new TypeToken<Stack<Move>>() {
+			}.getType();
+			moves = gson.fromJson(previousMoves, collectionType);
+
+			GsonBuilder gsonBuilder = new GsonBuilder();
+			gsonBuilder.registerTypeAdapter(Card.class, new CardDeserializer());
+			gson = gsonBuilder.create();
+
+			String draw = App.getSettings().getString("draw", null);
+
+			Type type = new TypeToken<ArrayList<Card>>() {
+			}.getType();
+			List<Card> cards = gson.fromJson(draw, type);
+			deck.setCards(cards);
+
+			for (int k = 0; k < Deck.START_CARDS_DEAL_COUNT; k++) {
+				Pile pile = pileLayouts.get(k % 10);
+
+				Card card = deck.getCard();
+				deck.addCardDealt();
+				boolean faceUp = Deck.START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
+				card.setFaceup(faceUp);
+				pile.addCard(card);
+
+			}
+
+			for (int i = 0; i < moves.size(); i++) {
+				redo(i);
+			}
+		}
 		getCardDimensions();
 		App.getBus().register(this);
 
@@ -106,7 +148,7 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 	@SuppressLint("DefaultLocale")
 	private void initSettings() {
-		prefs = PreferenceManager.getDefaultSharedPreferences(App.getAppContext());
+		prefs = App.getSettings();
 		prefs.registerOnSharedPreferenceChangeListener(this);
 
 		chosenDifficulty = Difficulty.valueOf(prefs.getString(Constant.SETT_DIFFICULTY, "EASY").toUpperCase());
@@ -139,7 +181,6 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 	@Override
 	protected void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
-		outState.putAll(outState);
 	}
 
 	private void findViewsSetListenersAndManagers() {
@@ -311,7 +352,6 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			root.removeView(fakeAnimCard);
 
 			deck.addCardDealt();
-			// cardsDealt++;
 			if (deck.isFullDeal()) {
 				gameState = GameState.STARTED;
 			}
@@ -345,7 +385,6 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 			boolean faceUp = Deck.START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
 			dealCard(pile, card, faceUp, k, true);
-
 		}
 	}
 
@@ -529,7 +568,8 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 		Move move = moves.pop();
 
-		if (move.getAction() == Move.ACTION_DEAL && human && chosenUnrestrictedUndo) {
+		if (move.getAction() == Move.ACTION_DEAL && human && !chosenUnrestrictedUndo) {
+			moves.add(move);
 			return;
 		}
 
@@ -564,6 +604,8 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
 				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
 			}
+			checkFullSetAndClear(landingContainer);
+
 			break;
 
 		case Move.ACTION_DEAL:
@@ -580,6 +622,41 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 
 		statsManager.updateMoves(StatsManager.MOVE);
 
+	}
+
+	private void redo(int index) {
+		Move move = moves.get(index);
+
+		Pile draggedParent = pileLayouts.get(move.getFrom());
+		Pile landingContainer = pileLayouts.get(move.getTo());
+
+		int indexOfFirstDragged;
+
+		statsManager.updateMoves(StatsManager.MOVE);
+
+		switch (move.getAction()) {
+
+		case Move.ACTION_MOVE:
+			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
+			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
+				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
+			}
+			draggedParent.getLastCard().setFaceup(true);
+			checkFullSetAndClear(draggedParent);
+			checkFullSetAndClear(landingContainer);
+			break;
+
+		case Move.ACTION_DEAL:
+
+			for (int i = 0; i < pileLayouts.size(); i++) {
+				Card card = deck.getCard();
+				pileLayouts.get(i).addCard(card);
+				card.setFaceup(true);
+				checkFullSetAndClear(pileLayouts.get(i));
+				deck.addCardDealt();
+			}
+			break;
+		}
 	}
 
 	class PileOnDragListener implements OnDragListener {
@@ -738,9 +815,9 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 			Move lastmove = moves.get(moves.size() - 1);
 			lastmove.setCompletedUncovered(container.uncoverLastCard());
 			checkFullSetAndClear(container);
-			if (chosenSound) {
-				sp.play(drawSoundId, 1, 1, 0, 0, 1);
-			}
+			// if (chosenSound) {
+			// sp.play(drawSoundId, 1, 1, 0, 0, 1);
+			// }
 		}
 
 		@Override
@@ -758,14 +835,23 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 	protected void onResume() {
 		super.onStart();
 		if (gameState == GameState.STARTED) {
-			statsManager.onGameResume();
+			Long timeWhenStopped = App.getSettings().getLong("time", 0);
+			Log.d(TAG, "time: " + timeWhenStopped + " " + SystemClock.elapsedRealtime());
+			statsManager.onGameResume(timeWhenStopped);
 		}
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		statsManager.onGamePause();
+		Gson gson = new Gson();
+		String json = gson.toJson(moves);
+		Editor editor = App.getSettings().edit();
+		editor.putString("moves", json);
+		editor.putLong("time", statsManager.getTimeWhenStopped());
+		editor.commit();
+		Log.d(TAG, "onPause");
+
 	}
 
 	@Override
@@ -886,4 +972,9 @@ public class Game extends Activity implements OnSharedPreferenceChangeListener {
 		}
 	}
 
+	@Override
+	protected void onStop() {
+		super.onStop();
+		statsManager.onGamePause();
+	}
 }

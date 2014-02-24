@@ -8,12 +8,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.content.Context;
+import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.xklakoux.freespider.enums.Difficulty;
 import com.xklakoux.freespider.enums.Number;
 import com.xklakoux.freespider.enums.Suit;
@@ -26,7 +30,7 @@ public class Deck extends RelativeLayout {
 
 	private static final String TAG = Deck.class.getSimpleName();
 
-	private final List<Card> cards = new LinkedList<Card>();
+	private List<Card> cards = new LinkedList<Card>();
 	private final List<ImageView> tens = new LinkedList<ImageView>();
 
 	LayoutInflater inflater;
@@ -103,14 +107,14 @@ public class Deck extends RelativeLayout {
 	 */
 	private void setLooks() {
 		float size = App.getAppContext().getResources().getDimension(R.dimen.card_stack_margin_down);
-		float topMargin=0;
-		float leftMargin=0;
+		float topMargin = 0;
+		float leftMargin = 0;
 
 		int orientation = App.getAppContext().getResources().getConfiguration().orientation;
 
-		if(orientation==Configuration.ORIENTATION_LANDSCAPE) {
+		if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
 			topMargin = size;
-		}else {
+		} else {
 			leftMargin = size;
 
 		}
@@ -121,7 +125,7 @@ public class Deck extends RelativeLayout {
 		for (ImageView ten : tens) {
 			ten.setImageResource((Utils.getResId("reverse_" + reverseResName, R.drawable.class)));
 			MarginLayoutParams marginParams = new MarginLayoutParams(ten.getLayoutParams());
-			marginParams.setMargins((int) leftMargin*i, (int) topMargin * i, 0, 0);
+			marginParams.setMargins((int) leftMargin * i, (int) topMargin * i, 0, 0);
 			Deck.LayoutParams layoutParams = new Deck.LayoutParams(marginParams);
 			ten.setLayoutParams(layoutParams);
 			ten.bringToFront();
@@ -136,49 +140,53 @@ public class Deck extends RelativeLayout {
 
 		cards.clear();
 
-		int spades = 0, clubs = 0, diamonds = 0, hearts = 0;
+		int[] suits = new int[] {0, 0, 0, 0};
 		switch (chosenDifficulty) {
 		case EASY:
-			spades = 8;
+			suits[0] = 8;
 			break;
 		case MEDIUM:
-			spades = 4;
-			hearts = 4;
+			suits[0] = 4;
+			suits[1] = 4;
 			break;
 		case HARD:
-			clubs = 2;
-			hearts = 2;
-			spades = 2;
-			diamonds = 2;
+			suits[0] = 2;
+			suits[1] = 2;
+			suits[2] = 2;
+			suits[3] = 2;
 			break;
 		}
 
-		for (int a = 0; a < spades; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(context, Suit.SPADES, num));
+		for (int i = 0; i < suits.length; i++) {
+			for (int j = 0; j < suits[i]; j++) {
+				for (Number num : Number.values()) {
+					cards.add(new Card(context, Suit.values()[i], num));
+
+				}
 			}
 		}
-		for (int a = 0; a < clubs; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(context, Suit.CLUBS, num));
-			}
-		}
-		for (int a = 0; a < diamonds; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(context, Suit.DIAMONDS, num));
-			}
-		}
-		for (int a = 0; a < hearts; a++) {
-			for (Number num : Number.values()) {
-				cards.add(new Card(context, Suit.HEARTS, num));
-			}
-		}
+
 		Collections.shuffle(cards);
+
+		addToSharedPreferences(cards);
 
 		setsCompleted = 0;
 		cardsDealt = 0;
 		refresh();
 		App.getBus().post(Game.GAME_STILL_NOT_WON);
+	}
+
+
+	private void addToSharedPreferences(List<Card> cards) {
+		GsonBuilder gsonBuilder = new GsonBuilder();
+		gsonBuilder.registerTypeAdapter(Card.class, new CardSerializer());
+		Gson gson = gsonBuilder.create();
+		String json = gson.toJson(cards);
+		Editor editor = App.getSettings().edit();
+		editor.putString("draw", json);
+		editor.commit();
+
+
 	}
 
 	public void setSize(int cardWidth, int cardHeight) {
@@ -221,11 +229,11 @@ public class Deck extends RelativeLayout {
 
 	public ImageView getLastVisible() {
 		RelativeLayout rl = (RelativeLayout) getChildAt(0);
-		int index=0;
-		if((cards.size()/10)>=4) {
-			index=4;
-		}else {
-			index=cards.size()/10;
+		int index = 0;
+		if ((cards.size() / 10) >= 4) {
+			index = 4;
+		} else {
+			index = cards.size() / 10;
 		}
 		return (ImageView) rl.getChildAt(index);
 	}
@@ -234,4 +242,11 @@ public class Deck extends RelativeLayout {
 		return cards.isEmpty();
 	}
 
+	public void setCards(List<Card> cards) {
+		this.cards = cards;
+		refresh();
+	}
+
 }
+
+
