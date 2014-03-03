@@ -13,6 +13,7 @@
     </style>
 
     <style name="MyActionBar" parent="@android:style/Widget.ActionBar">
+        <item name="android:windowActionBarOverlay">true</item>
         <item name="android:background">@color/dark_gray</item>
         <item name="android:titleTextStyle">@style/MyActionBar.TitleTextStyle</item>
     </style>

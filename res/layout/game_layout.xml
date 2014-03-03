@@ -9,14 +9,14 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context=".Game" >
+    tools:context=".GameActivity" >
 
     <ScrollView
         android:id="@+id/scrollPiles"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingTop="@dimen/activity_vertical_margin" >
+        android:paddingTop="@dimen/activity_vertical_margin"
+        android:scrollbars="none" >
 
         <LinearLayout
             android:id="@+id/piles"
@@ -30,80 +30,70 @@
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1">
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile1"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile2"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile3"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile4"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile5"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile6"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile7"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile8"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/pile9"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" >
-            </com.xklakoux.freespider.Pile>
+                android:layout_weight="1" />
 
             <com.xklakoux.freespider.Pile
                 android:id="@+id/hollowPile"
@@ -111,8 +101,7 @@
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
                 android:layout_weight="1"
-                android:visibility="invisible" >
-            </com.xklakoux.freespider.Pile>
+                android:visibility="invisible" />
         </LinearLayout>
     </ScrollView>
 
@@ -124,7 +113,7 @@
         android:layout_centerVertical="true"
         android:text="@string/you_won"
         android:textColor="@color/red"
-        android:textSize="50sp"
+        android:textSize="40sp"
         android:visibility="invisible" />
 
     <com.xklakoux.freespider.Deck
@@ -133,16 +122,16 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:adjustViewBounds="true"/>
+        android:adjustViewBounds="true" />
 
     <RelativeLayout
         android:id="@+id/stats"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:paddingRight="@dimen/activity_horizontal_margin"
+        android:layout_toLeftOf="@+id/deck"
         android:paddingLeft="@dimen/activity_horizontal_margin"
-        android:layout_toLeftOf="@+id/deck" >
+        android:paddingRight="@dimen/activity_horizontal_margin" >
 
         <LinearLayout
             android:id="@+id/LinearLayout02"

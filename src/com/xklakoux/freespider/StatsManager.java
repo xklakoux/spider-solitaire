@@ -3,7 +3,6 @@
  */
 package com.xklakoux.freespider;
 
-import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Chronometer;
@@ -26,10 +25,8 @@ public class StatsManager {
 	private final TextView tvScore;
 	private final TextView tvMoves;
 	private final Chronometer cTime;
-	private final Context context;
 
-	public StatsManager(Context context, TextView tvScore, TextView tvMoves, Chronometer cTime) {
-		this.context = context;
+	public StatsManager( TextView tvScore, TextView tvMoves, Chronometer cTime) {
 		this.tvScore = tvScore;
 		this.tvMoves = tvMoves;
 		this.cTime = cTime;

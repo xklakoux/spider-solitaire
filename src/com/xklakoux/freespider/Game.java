@@ -1,980 +1,170 @@
+/**
+ * 
+ */
 package com.xklakoux.freespider;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Stack;
-
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
-import android.graphics.Color;
-import android.media.AudioManager;
-import android.media.SoundPool;
-import android.os.Bundle;
-import android.os.SystemClock;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.DragEvent;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.View.OnDragListener;
-import android.view.ViewTreeObserver;
-import android.view.ViewTreeObserver.OnGlobalLayoutListener;
-import android.view.animation.Animation;
-import android.view.animation.Animation.AnimationListener;
-import android.view.animation.DecelerateInterpolator;
-import android.view.animation.TranslateAnimation;
-import android.widget.ArrayAdapter;
-import android.widget.Chronometer;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-import android.widget.RelativeLayout.LayoutParams;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.squareup.otto.Subscribe;
-import com.xklakoux.freespider.enums.Difficulty;
+import com.squareup.otto.Bus;
 import com.xklakoux.freespider.enums.GameState;
-import com.xklakoux.freespider.enums.Number;
-import com.xklakoux.freespider.enums.Suit;
 
-public class Game extends Activity implements OnSharedPreferenceChangeListener {
+import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.media.AudioManager;
+import android.media.SoundPool;
+import android.preference.PreferenceManager;
 
-	private StatsManager statsManager;
+/**
+ * @author artur
+ *
+ */
+public class Game extends Application {
 
-	private GameState gameState = GameState.NOT_STARTED;
+	public final static int SOUND_PUT_CARD = 0;
 
+	private static StatsManager statsManager;
+	static private SharedPreferences settings;
+	static private Context context;
+	static private Bus bus;
+	static private int uniqueId;
 	private static Stack<Move> moves = new Stack<Move>();
+	private static GameState gameState = GameState.NOT_STARTED;
+	//	private static Deck deck;
 
-	public final String TAG = Game.class.getSimpleName();
-
-	private RelativeLayout root;
-
-	static List<Pile> pileLayouts;
-
-	public static String GAME_WON = "won";
 	public static String GAME_STILL_NOT_WON = "still not won";
+	public static String GAME_WON = "won";
 
-	private Deck deck;
-	private TextView winner;
-	private ScrollView scrollPiles;
-	private LinearLayout piles;
-	private RelativeLayout hollowPile;
-	private RelativeLayout statsLayout;
+	private static int setsCompleted = 0;
+	private static int cardsDealt = 0;
 
-	private Difficulty chosenDifficulty;
+	final public static int NUMBER_OF_SETS = 8;
+	final public static int FULL_NUMBER_SET = 13;
+	final public static int START_CARDS_DEAL_COUNT = 54;
 
-	private String chosenOrientation;
-	private float chosenAnimationSpeed;
-	private boolean chosenSound;
-	private boolean chosenUnrestrictedDeal;
-	private boolean chosenUnrestrictedUndo;
-	private boolean chosenHints;
-
-	private SharedPreferences prefs;
-
-	boolean onCreate = false;
-
-	int cardWidth;
-	int cardHeight;
-
-	private final SoundPool sp = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
-	int drawSoundId = sp.load(App.getAppContext(), R.raw.draw, 1);
+	private final static SoundPool sp = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
+	private static int drawSoundId;
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.game_layout);
-		initSettings();
-		findViewsSetListenersAndManagers();
-		fixLayoutOrientation(getResources().getConfiguration().orientation);
-		String previousMoves = App.getSettings().getString("moves", null);
+	public void onCreate() {
+		super.onCreate();
+		context = getApplicationContext();
+		settings = PreferenceManager.getDefaultSharedPreferences(context);
+		bus = new Bus();
+		drawSoundId = sp.load(Game.getAppContext(), R.raw.draw, 1);
+
+		Gson gson = new Gson();
+		Type collectionType = new TypeToken<Stack<Move>>() {
+		}.getType();
+
+		String previousMoves = Game.getSettings().getString("moves", null);
 		if (previousMoves != null) {
-			onCreate = false;
 			gameState = GameState.STARTED;
-			Gson gson = new Gson();
-			Type collectionType = new TypeToken<Stack<Move>>() {
-			}.getType();
 			moves = gson.fromJson(previousMoves, collectionType);
-
-			GsonBuilder gsonBuilder = new GsonBuilder();
-			gsonBuilder.registerTypeAdapter(Card.class, new CardDeserializer());
-			gson = gsonBuilder.create();
-
-			String draw = App.getSettings().getString("draw", null);
-
-			Type type = new TypeToken<ArrayList<Card>>() {
-			}.getType();
-			List<Card> cards = gson.fromJson(draw, type);
-			deck.setCards(cards);
-
-			for (int k = 0; k < Deck.START_CARDS_DEAL_COUNT; k++) {
-				Pile pile = pileLayouts.get(k % 10);
-
-				Card card = deck.getCard();
-				deck.addCardDealt();
-				boolean faceUp = Deck.START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
-				card.setFaceup(faceUp);
-				pile.addCard(card);
-
-			}
-
-			for (int i = 0; i < moves.size(); i++) {
-				redo(i);
-			}
-		}
-		getCardDimensions();
-		App.getBus().register(this);
-
-	}
-
-	@SuppressLint("DefaultLocale")
-	private void initSettings() {
-		prefs = App.getSettings();
-		prefs.registerOnSharedPreferenceChangeListener(this);
-
-		chosenDifficulty = Difficulty.valueOf(prefs.getString(Constant.SETT_DIFFICULTY, "EASY").toUpperCase());
-
-		chosenOrientation = prefs.getString(Constant.SETT_ORIENTATION, "auto");
-		if (chosenOrientation.equals("horizontal")) {
-			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-		} else if (chosenOrientation.equals("vertical")) {
-			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
-		} else {
-			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
-		}
-
-		chosenSound = prefs.getBoolean(Constant.SETT_SOUNDS, true);
-		chosenUnrestrictedDeal = prefs.getBoolean(Constant.SETT_UNRES_DEAL, false);
-		chosenUnrestrictedUndo = prefs.getBoolean(Constant.SETT_UNRES_UNDO, false);
-
-		chosenHints = prefs.getBoolean(Constant.SETT_HINTS, true);
-
-		String speed = prefs.getString(Constant.SETT_ANIMATION, "slow");
-		if (speed.equals("slow")) {
-			chosenAnimationSpeed = 1.0f;
-		} else if (speed.equals("fast")) {
-			chosenAnimationSpeed = 0.5f;
-		} else if (speed.equals("superfast")) {
-			chosenAnimationSpeed = 0.0f;
 		}
 	}
 
-	@Override
-	protected void onSaveInstanceState(Bundle outState) {
-		super.onSaveInstanceState(outState);
+	public static SharedPreferences getSettings() {
+		return settings;
 	}
 
-	private void findViewsSetListenersAndManagers() {
-		winner = (TextView) findViewById(R.id.winner);
-
-		scrollPiles = (ScrollView) findViewById(R.id.scrollPiles);
-		piles = (LinearLayout) findViewById(R.id.piles);
-		hollowPile = (Pile) findViewById(R.id.hollowPile);
-		statsLayout = (RelativeLayout) findViewById(R.id.stats);
-
-		pileLayouts = new LinkedList<Pile>();
-		pileLayouts.add((Pile) findViewById(R.id.pile0));
-		pileLayouts.add((Pile) findViewById(R.id.pile1));
-		pileLayouts.add((Pile) findViewById(R.id.pile2));
-		pileLayouts.add((Pile) findViewById(R.id.pile3));
-		pileLayouts.add((Pile) findViewById(R.id.pile4));
-		pileLayouts.add((Pile) findViewById(R.id.pile5));
-		pileLayouts.add((Pile) findViewById(R.id.pile6));
-		pileLayouts.add((Pile) findViewById(R.id.pile7));
-		pileLayouts.add((Pile) findViewById(R.id.pile8));
-		pileLayouts.add((Pile) findViewById(R.id.pile9));
-
-		for (Pile pile : pileLayouts) {
-			pile.setOnDragListener(new PileOnDragListener());
-		}
-
-		deck = (Deck) findViewById(R.id.deck);
-		deck.setOnClickListener(new OnDeckClickListener());
-		deck.setSize(cardWidth, cardHeight);
-
-		root = (RelativeLayout) findViewById(R.id.root);
-
-		TextView score = (TextView) findViewById(R.id.tvScore);
-		TextView movesCount = (TextView) findViewById(R.id.tvMoves);
-		Chronometer time = (Chronometer) findViewById(R.id.tvTimeElapsed);
-		statsManager = new StatsManager(Game.this, score, movesCount, time);
-
-		refreshResources();
+	public static Context getAppContext() {
+		return context;
 	}
 
-	@SuppressWarnings("deprecation")
-	public void refreshResources() {
-
-		for (Pile pile : pileLayouts) {
-			pile.refresh();
-		}
-		deck.refresh();
-		String backgroundResName = App.getSettings().getString(Constant.SETT_BACKGROUND, Constant.DEFAULT_BACKGROUND);
-		root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_" + backgroundResName,
-				R.drawable.class)))));
-
+	public static Bus getBus() {
+		return bus;
+	}
+	public static int getUniqueId() {
+		return uniqueId++;
 	}
 
-	class OnDeckClickListener implements OnClickListener {
-
-		@Override
-		public void onClick(View v) {
-
-			if (deck.isEmpty()) {
-				return;
-			}
-			if (!chosenUnrestrictedDeal && !cardsCorrect()) {
-				return;
-			}
-			if (gameState != GameState.STARTED) {
-				return;
-			}
-			int i = 0;
-			gameState = GameState.DEALING;
-			for (Pile pile : pileLayouts) {
-				Card card = deck.getCard();
-				dealCard(pile, card, true, i++, false);
-			}
-
-			moves.add(new Move(Move.ACTION_DEAL));
-		}
-
-		/**
-		 * @return
-		 */
-		private boolean cardsCorrect() {
-			for (Pile pile : pileLayouts) {
-				if (pile.getCardsCount() < 1) {
-					Toast.makeText(Game.this, R.string.all_tableaus_should_be_filled, Toast.LENGTH_SHORT).show();
-					return false;
-				}
-			}
-			return true;
-		}
-
+	public static Stack<Move> getMoves() {
+		return moves;
 	}
 
-	private int getStatusBarOffset() {
-		DisplayMetrics displayMetrics = new DisplayMetrics();
-		getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-		int offsetY = displayMetrics.heightPixels - root.getMeasuredHeight();
-		return offsetY;
+	public static GameState getState() {
+		return gameState;
 	}
 
-	private void dealCard(Pile pile, Card card, boolean faceup, int hundredMillisecondOffset, boolean isNewGameDeal) {
-
-		int[] deckLocation = new int[2];
-		deck.getLastVisible().getLocationOnScreen(deckLocation);
-		int statusBarOffsetY = getStatusBarOffset();
-
-		int[] location = new int[2];
-		pile.getLastTrueChild().getLocationOnScreen(location);
-		final Card fakeCard = new Card(Game.this, Suit.SPADES, Number.ACE);
-		root.addView(fakeCard);
-		setCardSize(fakeCard);
-		fakeCard.setOnTouchListener(null);
-
-		float horizontalMargin = getResources().getDimension(R.dimen.activity_horizontal_margin);
-		float verticalMargin = getResources().getDimension(R.dimen.activity_vertical_margin);
-
-		int cardsOffset = hundredMillisecondOffset / pileLayouts.size();
-		float stackMargin = 0;
-		if (isNewGameDeal) {
-			stackMargin = getResources().getDimension(R.dimen.card_stack_margin_down) * cardsOffset;
-
-		} else {
-			stackMargin = getResources().getDimension(R.dimen.card_stack_margin_up);
-		}
-		float fromX = deckLocation[0] - horizontalMargin;
-		float toX = location[0] - horizontalMargin;
-		float fromY = deckLocation[1] - statusBarOffsetY - verticalMargin;
-		float toY = location[1] - statusBarOffsetY - verticalMargin + stackMargin;
-
-		Animation anim = new TranslateAnimation(Animation.ABSOLUTE, fromX, Animation.ABSOLUTE, toX, Animation.ABSOLUTE,
-				fromY, Animation.ABSOLUTE, toY);
-
-		anim.setInterpolator(new DecelerateInterpolator());
-		anim.setDuration((long) (700.0 * chosenAnimationSpeed) + 100);
-		int startOffset = hundredMillisecondOffset * ((int) (100.0 * chosenAnimationSpeed));
-		anim.setStartOffset(startOffset);
-		anim.setAnimationListener(new DealAnimationListener(pile, card, root, fakeCard, isNewGameDeal));
-		anim.setZAdjustment(Animation.ZORDER_TOP);
-		fakeCard.setAnimation(anim);
-
-		card.setFaceup(faceup);
+	public static void setState(GameState state) {
+		gameState = state;
 	}
 
-	class DealAnimationListener implements AnimationListener {
+	public static void addCardDealt() {
+		cardsDealt++;
+	}
 
-		private final Pile container;
-		private final Card card;
-		private final Card fakeAnimCard;
-		private final RelativeLayout root;
-		private final boolean isNewGameDeal;
-
-		public DealAnimationListener(Pile container, Card card, RelativeLayout root, Card fakeAnimCard,
-				boolean isNewGameDeal) {
-			this.container = container;
-			this.card = card;
-			this.fakeAnimCard = fakeAnimCard;
-			this.root = root;
-			this.isNewGameDeal = isNewGameDeal;
-		}
-
-		@Override
-		public void onAnimationEnd(Animation animation) {
-			container.addCard(card);
-			if (checkFullSetAndClear(container)) {
-				Move lastMove = moves.get(moves.size() - 1);
-				lastMove.setCompleted(true);
-				lastMove.setSuit(card.getSuit());
-				lastMove.setTo(pileLayouts.indexOf(container));
-			}
-			root.removeView(fakeAnimCard);
-
-			deck.addCardDealt();
-			if (deck.isFullDeal()) {
-				gameState = GameState.STARTED;
-			}
-			if (deck.isStartDeal()) {
-				statsManager.clearStatsAndGo();
-			}
-			if (chosenSound) {
-				sp.play(drawSoundId, 1, 1, 0, 0, 1);
-			}
-		}
-
-		@Override
-		public void onAnimationRepeat(Animation animation) {
-		}
-
-		@Override
-		public void onAnimationStart(Animation animation) {
-			fakeAnimCard.setVisibility(View.VISIBLE);
-			fakeAnimCard.bringToFront();
-			root.requestLayout();
-			root.invalidate();
+	public static void setCompleted() {
+		setsCompleted++;
+		if (setsCompleted == NUMBER_OF_SETS) {
+			Game.getBus().post(Game.GAME_WON);
 		}
 	}
 
-	private void dealNewGame() {
-		gameState = GameState.DEALING;
-		for (int k = 0; k < Deck.START_CARDS_DEAL_COUNT; k++) {
-			Pile pile = pileLayouts.get(k % 10);
-
-			Card card = deck.getCard();
-
-			boolean faceUp = Deck.START_CARDS_DEAL_COUNT - k <= pileLayouts.size();
-			dealCard(pile, card, faceUp, k, true);
-		}
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu items for use in the action bar
-		MenuInflater inflater = getMenuInflater();
-		inflater.inflate(R.menu.game_menu, menu);
-		return super.onCreateOptionsMenu(menu);
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle presses on the action bar items
-		switch (item.getItemId()) {
-		case R.id.action_undo:
-			undo(true);
-			return true;
-		case R.id.action_new_game:
-			if (gameState == GameState.STARTED) {
-				showNewGameDialog();
-			} else if (gameState == GameState.DEALING) {
-				// do nothing
-			} else {
-				setupNewGame();
-			}
-			return true;
-		case R.id.action_restart:
-			if (gameState == GameState.STARTED) {
-				restartGameDialog();
-			} else if (gameState == GameState.DEALING) {
-				// do nothing
-			}
-			return true;
-		case R.id.action_settings:
-			Intent settingsActivity = new Intent(getBaseContext(), SettingsDialog.class);
-			startActivity(settingsActivity);
-
-			return true;
-		case R.id.action_rules:
-			showRulesDialog();
-			return true;
-		default:
-			return super.onOptionsItemSelected(item);
-		}
-	}
-
-	private void showNewGameDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
-		builder.setMessage(R.string.current_progress_will_be_lost_message);
-		builder.setTitle(R.string.start_new_game_alert_dialog_title);
-		builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				setupNewGame();
-			}
-		});
-		builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dialog.dismiss();
-			}
-		});
-		AlertDialog dialog = builder.create();
-		dialog.show();
-	}
-
-	private void restartGameDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
-		builder.setMessage(R.string.current_progress_will_be_lost_message);
-		builder.setTitle(R.string.restart_game_alert_dialog_title);
-		builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				restartGame();
-			}
-		});
-		builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dialog.dismiss();
-			}
-		});
-		AlertDialog dialog = builder.create();
-		dialog.show();
-	}
-
-	private void showRulesDialog() {
-		AlertDialog.Builder builder = new AlertDialog.Builder(Game.this);
-		builder.setMessage(R.string.rules_of_spider);
-		builder.setTitle(R.string.spider_solitaire_rules);
-		builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dialog.dismiss();
-			}
-		});
-		AlertDialog dialog = builder.create();
-		dialog.setCanceledOnTouchOutside(true);
-		dialog.show();
-	}
-
-	private void restartGame() {
-		for (int i = 0; i < moves.size();) {
-			undo(false);
-		}
-		moves.clear();
-		statsManager.clearStatsAndGo();
-	}
-
-	private void setupNewGame() {
-		gameState = GameState.DEALING;
-		moves.clear();
-
-		for (Pile pileLayout : pileLayouts) {
-			pileLayout.removeViews(1, pileLayout.getCardsCount());
-		}
-		deck.initialize(chosenDifficulty, Game.this);
-		dealNewGame();
-		statsManager.setTimeZero();
-	}
-
-	private void showSettings() {
-		AlertDialog.Builder builderSingle = new AlertDialog.Builder(Game.this);
-		builderSingle.setTitle("Settings");
-		final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(Game.this,
-				android.R.layout.simple_list_item_1);
-		arrayAdapter.add("Set difficulty: " + chosenDifficulty.toString());
-		builderSingle.setPositiveButton("Save", new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				dialog.dismiss();
-			}
-		});
-
-		builderSingle.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
-
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-
-				switch (which) {
-				case 0:
-					AlertDialog.Builder builderInner = new AlertDialog.Builder(Game.this);
-					final ArrayAdapter<String> difficultyAdapter = new ArrayAdapter<String>(Game.this,
-							android.R.layout.select_dialog_singlechoice);
-					difficultyAdapter.add("Easy");
-					difficultyAdapter.add("Medium");
-					difficultyAdapter.add("Hard");
-
-					builderInner.setAdapter(difficultyAdapter, new DialogInterface.OnClickListener() {
-						@Override
-						public void onClick(DialogInterface dialog, int which) {
-							String value = difficultyAdapter.getItem(which).toUpperCase(Locale.getDefault());
-							chosenDifficulty = Difficulty.valueOf(value);
-							App.getSettings().edit().putString("difficulty", value).commit();
-							dialog.dismiss();
-						}
-					});
-					builderInner.setTitle("Difficulty");
-					builderInner.show();
-					break;
-				}
-			}
-		});
-		builderSingle.show();
-	}
-
-	private void undo(boolean human) {
-		if (moves.isEmpty()) {
-			return;
-		}
-
-		winner.setVisibility(View.GONE);
-		int indexOfFirstDragged;
-
-		Move move = moves.pop();
-
-		if (move.getAction() == Move.ACTION_DEAL && human && !chosenUnrestrictedUndo) {
-			moves.add(move);
-			return;
-		}
-
-		Pile landingContainer = pileLayouts.get(move.getFrom());
-		Pile draggedParent = pileLayouts.get(move.getTo());
-
-		if (move.isCompletedUncovered()) {
-			draggedParent.getLastCard().setFaceup(false);
-		}
-
-		if (move.isCompleted()) {
-			deck.setUndid();
-			statsManager.updatePoints(StatsManager.SET_UNDID);
-
-			for (Number num : Number.values()) {
-				Card card = new Card(Game.this, move.getSuit(), num);
-				card.setFaceup(true);
-				draggedParent.addCard(card);
-			}
-		}
-
-		if (move.isUncover()) {
-			indexOfFirstDragged = landingContainer.getCardsCount() - move.getAmount();
-
-			landingContainer.getLastCard().setFaceup(false);
-		}
-
-		switch (move.getAction()) {
-
-		case Move.ACTION_MOVE:
-			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
-			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
-				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
-			}
-			checkFullSetAndClear(landingContainer);
-
-			break;
-
-		case Move.ACTION_DEAL:
-
-			for (int i = pileLayouts.size() - 1; i >= 0; i--) {
-				Card card = pileLayouts.get(i).getLastCard();
-				card.setFaceup(false);
-				deck.addCard(card);
-				pileLayouts.get(i).removeLastCard();
-				checkFullSetAndClear(pileLayouts.get(i));
-			}
-			break;
-		}
-
-		statsManager.updateMoves(StatsManager.MOVE);
-
-	}
-
-	private void redo(int index) {
-		Move move = moves.get(index);
-
-		Pile draggedParent = pileLayouts.get(move.getFrom());
-		Pile landingContainer = pileLayouts.get(move.getTo());
-
-		int indexOfFirstDragged;
-
-		statsManager.updateMoves(StatsManager.MOVE);
-
-		switch (move.getAction()) {
-
-		case Move.ACTION_MOVE:
-			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
-			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
-				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
-			}
-			draggedParent.getLastCard().setFaceup(true);
-			checkFullSetAndClear(draggedParent);
-			checkFullSetAndClear(landingContainer);
-			break;
-
-		case Move.ACTION_DEAL:
-
-			for (int i = 0; i < pileLayouts.size(); i++) {
-				Card card = deck.getCard();
-				pileLayouts.get(i).addCard(card);
-				card.setFaceup(true);
-				checkFullSetAndClear(pileLayouts.get(i));
-				deck.addCardDealt();
-			}
-			break;
-		}
-	}
-
-	class PileOnDragListener implements OnDragListener {
-
-		@Override
-		public boolean onDrag(View v, DragEvent event) {
-
-			Card draggedCard = (Card) event.getLocalState();
-			if (draggedCard == null) {
-				return false;
-			}
-			Pile draggedParent = (Pile) draggedCard.getParent();
-			if (draggedParent == null) {
-				return false;
-			}
-			int indexOfDragged = draggedParent.indexOfCard(draggedCard);
-
-			Pile landingContainer = (Pile) v;
-			ImageView glowing = landingContainer.getLastTrueChild();
-
-			switch (event.getAction()) {
-			case DragEvent.ACTION_DRAG_STARTED:
-				break;
-			case DragEvent.ACTION_DRAG_ENTERED:
-				if (landingContainer != draggedParent) {
-					glowing.setColorFilter(getResources().getColor(R.color.highlight));
-				}
-				break;
-			case DragEvent.ACTION_DRAG_EXITED:
-				glowing.setColorFilter(Color.TRANSPARENT);
-				// }
-				break;
-			case DragEvent.ACTION_DROP:
-				glowing.setColorFilter(Color.TRANSPARENT);
-				if (landingContainer == draggedParent) {
-					break;
-				}
-				if (!landingContainer.isEmpty()) {
-					Card lastCard = landingContainer.getLastCard();
-
-					if (lastCard.getNumber().getId() != draggedCard.getNumber().getId() + 1 || !lastCard.isFaceup()) {
-						break;
-					}
-				}
-				int movedCards = 0;
-				for (int i = indexOfDragged; i < draggedParent.getCardsCount();) {
-					draggedParent.getCardAt(i).setVisibility(View.VISIBLE);
-					draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
-					movedCards++;
-				}
-				checkFullSetAndClear(draggedParent);
-
-				int indexOfDraggedParent = pileLayouts.indexOf(draggedParent);
-				int indexOfLandingParent = pileLayouts.indexOf(landingContainer);
-
-				moves.add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard.getSuit(),
-						Move.ACTION_MOVE));
-				if (checkFullSetAndClear(landingContainer)) {
-					moves.get(moves.size() - 1).setCompleted(true);
-				}
-
-				Move lastMove = moves.get(moves.size() - 1);
-				lastMove.setUncover(draggedParent.uncoverLastCard());
-
-				statsManager.updateMoves(StatsManager.MOVE);
-
-				if (chosenSound) {
-					sp.play(drawSoundId, 1, 1, 0, 0, 1);
-				}
-				return true;
-			case DragEvent.ACTION_DRAG_ENDED:
-				// if (!landingContainer.isEmpty()) {
-				glowing.setColorFilter(Color.TRANSPARENT);
-				// }
-				for (int i = indexOfDragged; i < draggedParent.getCardsCount(); i++) {
-					Card card = draggedParent.getCardAt(i);
-					card.setVisibility(View.VISIBLE);
-				}
-				return false;
-			default:
-				break;
-			}
-			return true;
-		}
-
-	}
-
-	private boolean checkFullSetAndClear(Pile container) {
-		container.refresh();
-		int lastIndex = container.getCardsCount() - 1;
-		int counter = 1;
-		Card referenceCard = container.getLastCard();
-		for (int i = lastIndex - 1; i >= 0; i--) {
-			Card card = container.getCardAt(i);
-			if (!(referenceCard.getSuit() == card.getSuit())
-					|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1)) || !card.isFaceup()) {
-
-				if (chosenHints) {
-					for (int j = i; j >= 0; j--) {
-						Card c = container.getCardAt(j);
-						if (c.isFaceup()) {
-							c.setColorFilter(getResources().getColor(R.color.dim));
-						} else {
-							break;
-						}
-					}
-				}
-				break;
-			}
-			referenceCard = card;
-			counter++;
-		}
-
-		float step = getResources().getDimension(R.dimen.card_stack_margin_up);
-
-		if (counter == Deck.FULL_NUMBER_SET) {
-			for (int i = lastIndex; i > lastIndex - Deck.FULL_NUMBER_SET; i--) {
-				Card card = container.getCardAt(i);
-				float deltaY = -(i - (lastIndex - Deck.FULL_NUMBER_SET + 1)) * step;
-
-				Animation trans = new TranslateAnimation(0.0f, 0.0f, 0.0f, deltaY);
-				trans.setInterpolator(new DecelerateInterpolator(2.0f));
-				trans.setDuration(500);
-				trans.setFillAfter(true);
-				trans.setAnimationListener(new FullSetClearAnimationListener(container, card));
-				card.startAnimation(trans);
-
-			}
-
-			deck.setCompleted();
-			statsManager.updatePoints(StatsManager.SET_COMPLETED);
+	public static boolean isFullDeal() {
+		if (cardsDealt >= START_CARDS_DEAL_COUNT && cardsDealt % 10 == 4) {
 			return true;
 		}
 		return false;
 	}
 
-	private void gameWon() {
-		winner.setVisibility(View.VISIBLE);
-		gameState = GameState.FINISHED;
-		statsManager.timeStop();
+	public static boolean isStartDeal() {
+		if (cardsDealt == START_CARDS_DEAL_COUNT) {
+			return true;
+		}
+		return false;
 	}
 
-	class FullSetClearAnimationListener implements AnimationListener {
-
-		private final Pile container;
-		private final Card card;
-
-		public FullSetClearAnimationListener(Pile container, Card card) {
-			this.container = container;
-			this.card = card;
-		}
-
-		@Override
-		public void onAnimationEnd(Animation animation) {
-			container.removeView(card);
-			Move lastmove = moves.get(moves.size() - 1);
-			lastmove.setCompletedUncovered(container.uncoverLastCard());
-			checkFullSetAndClear(container);
-			// if (chosenSound) {
-			// sp.play(drawSoundId, 1, 1, 0, 0, 1);
-			// }
-		}
-
-		@Override
-		public void onAnimationRepeat(Animation animation) {
-		}
-
-		@Override
-		public void onAnimationStart(Animation animation) {
-			card.setOnDragListener(null);
-		}
-
+	public static void setUndid() {
+		setsCompleted--;
+		Game.getBus().post(Game.GAME_STILL_NOT_WON);
 	}
 
-	@Override
-	protected void onResume() {
-		super.onStart();
-		if (gameState == GameState.STARTED) {
-			Long timeWhenStopped = App.getSettings().getLong("time", 0);
-			Log.d(TAG, "time: " + timeWhenStopped + " " + SystemClock.elapsedRealtime());
-			statsManager.onGameResume(timeWhenStopped);
-		}
+	/**
+	 * 
+	 */
+	public static void init(List<Card> cards) {
+		addToSharedPreferences(cards);
+		setsCompleted = 0;
+		cardsDealt = 0;
+		Game.getBus().post(Game.GAME_STILL_NOT_WON);
 	}
 
-	@Override
-	protected void onPause() {
-		super.onPause();
-		Gson gson = new Gson();
-		String json = gson.toJson(moves);
-		Editor editor = App.getSettings().edit();
-		editor.putString("moves", json);
-		editor.putLong("time", statsManager.getTimeWhenStopped());
+	private static void addToSharedPreferences(List<Card> cards) {
+		GsonBuilder gsonBuilder = new GsonBuilder();
+		gsonBuilder.registerTypeAdapter(Card.class, new CardSerializer());
+		Gson gson = gsonBuilder.create();
+		String json = gson.toJson(cards);
+		Editor editor = Game.getSettings().edit();
+		editor.putString("draw", json);
 		editor.commit();
-		Log.d(TAG, "onPause");
-
 	}
 
-	@Override
-	public void onWindowFocusChanged(boolean hasFocus) {
-		super.onWindowFocusChanged(hasFocus);
-		onCreate = true;
-		getCardDimensions();
+	public static StatsManager getStatsManager() {
+		return statsManager;
 	}
 
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
-		getCardDimensions();
-		fixLayoutOrientation(newConfig.orientation);
+	public static void setStatsManager(StatsManager manager) {
+		statsManager = manager;
 	}
 
-	private void fixLayoutOrientation(int orientation) {
-
-		if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-
-			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
-					LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.ALIGN_PARENT_TOP, 0);
-			params.addRule(RelativeLayout.ALIGN_PARENT_LEFT, 0);
-			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-			params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-			deck.setLayoutParams(params);
-
-			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.BELOW, 0);
-			scrollPiles.setLayoutParams(params);
-
-			hollowPile.setVisibility(View.INVISIBLE);
-			piles.setWeightSum(11f);
-
-			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.LEFT_OF, deck.getId());
-			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-			statsLayout.setLayoutParams(params);
-
-		} else if (orientation == Configuration.ORIENTATION_PORTRAIT) {
-			RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
-					LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-			params.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM, 0);
-			params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT, 0);
-			deck.setLayoutParams(params);
-
-			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.BELOW, deck.getId());
-			scrollPiles.setLayoutParams(params);
-
-			hollowPile.setVisibility(View.GONE);
-			piles.setWeightSum(10f);
-
-			params = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-			params.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-			params.addRule(RelativeLayout.LEFT_OF, 0);
-			statsLayout.setLayoutParams(params);
+	public static void playSound(int sound) {
+		switch(sound) {
+		case SOUND_PUT_CARD:
+			sp.play(drawSoundId, 1, 1, 0, 0, 1);
+			break;
 
 		}
 	}
 
-	@Override
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-
-		initSettings();
-
-		if (key.equals(Constant.SETT_DIFFICULTY)) {
-			setupNewGame();
-
-		} else if (key.equals(Constant.SETT_BACKGROUND)) {
-			String backgroundResName = App.getSettings().getString(Constant.SETT_BACKGROUND,
-					Constant.DEFAULT_BACKGROUND);
-			root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_" + backgroundResName,
-					R.drawable.class)))));
-
-		} else if (key.equals(Constant.SETT_HINTS) || key.equals(Constant.SETT_CARD_SET)
-				|| key.equals(Constant.SETT_REVERSE)) {
-
-			for (Pile pile : pileLayouts) {
-				pile.refresh();
-				checkFullSetAndClear(pile);
-			}
-		}
-	}
-
-	private void getCardDimensions() {
-		ViewTreeObserver vto = pileLayouts.get(0).getFirstCardSpot().getViewTreeObserver();
-		vto.addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
-			@SuppressWarnings("deprecation")
-			@Override
-			public void onGlobalLayout() {
-				// pileLayouts.get(0).getViewTreeObserver().removeGlobalOnLayoutListener(this);
-				cardWidth = pileLayouts.get(0).getFirstCardSpot().getMeasuredWidth();
-				cardHeight = pileLayouts.get(0).getFirstCardSpot().getMeasuredHeight();
-				deck.setSize(cardWidth, cardHeight);
-				if (onCreate && gameState == GameState.NOT_STARTED) {
-					setupNewGame();
-				}
-			}
-		});
-	}
-
-	private void setCardSize(Card card) {
-		card.getLayoutParams().width = cardWidth;
-		card.getLayoutParams().height = cardHeight;
-	}
-
-	@Subscribe
-	public void answerAvailable(String string) {
-		// TODO: React to the event somehow!
-		if (string.equals(Game.GAME_WON)) {
-			gameWon();
-		} else if (string.equals(GAME_STILL_NOT_WON)) {
-			winner.setVisibility(View.GONE);
-		}
-	}
-
-	@Override
-	protected void onStop() {
-		super.onStop();
-		statsManager.onGamePause();
+	public static Move getLastMove() {
+		return moves.get(moves.size() - 1);
 	}
 }

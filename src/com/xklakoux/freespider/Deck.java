@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.content.Context;
-import android.content.SharedPreferences.Editor;
 import android.content.res.Configuration;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -16,8 +15,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.xklakoux.freespider.R;
 import com.xklakoux.freespider.enums.Difficulty;
 import com.xklakoux.freespider.enums.Number;
 import com.xklakoux.freespider.enums.Suit;
@@ -34,13 +32,6 @@ public class Deck extends RelativeLayout {
 	private final List<ImageView> tens = new LinkedList<ImageView>();
 
 	LayoutInflater inflater;
-
-	private int setsCompleted = 0;
-	private int cardsDealt = 0;
-
-	final public static int NUMBER_OF_SETS = 8;
-	final public static int FULL_NUMBER_SET = 13;
-	final public static int START_CARDS_DEAL_COUNT = 54;
 
 	public Deck(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -70,7 +61,7 @@ public class Deck extends RelativeLayout {
 	public void refresh() {
 		int i = 0;
 
-		String reverseResName = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
+		String reverseResName = Game.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
 		for (ImageView ten : tens) {
 			ten.setImageResource((Utils.getResId("reverse_" + reverseResName, R.drawable.class)));
 
@@ -106,11 +97,11 @@ public class Deck extends RelativeLayout {
 	 * 
 	 */
 	private void setLooks() {
-		float size = App.getAppContext().getResources().getDimension(R.dimen.card_stack_margin_down);
+		float size = Game.getAppContext().getResources().getDimension(R.dimen.card_stack_margin_down);
 		float topMargin = 0;
 		float leftMargin = 0;
 
-		int orientation = App.getAppContext().getResources().getConfiguration().orientation;
+		int orientation = Game.getAppContext().getResources().getConfiguration().orientation;
 
 		if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
 			topMargin = size;
@@ -120,7 +111,7 @@ public class Deck extends RelativeLayout {
 		}
 
 		int i = 0;
-		String reverseResName = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
+		String reverseResName = Game.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
 
 		for (ImageView ten : tens) {
 			ten.setImageResource((Utils.getResId("reverse_" + reverseResName, R.drawable.class)));
@@ -165,29 +156,15 @@ public class Deck extends RelativeLayout {
 				}
 			}
 		}
-
 		Collections.shuffle(cards);
 
-		addToSharedPreferences(cards);
+		Game.init(cards);
 
-		setsCompleted = 0;
-		cardsDealt = 0;
 		refresh();
-		App.getBus().post(Game.GAME_STILL_NOT_WON);
 	}
 
 
-	private void addToSharedPreferences(List<Card> cards) {
-		GsonBuilder gsonBuilder = new GsonBuilder();
-		gsonBuilder.registerTypeAdapter(Card.class, new CardSerializer());
-		Gson gson = gsonBuilder.create();
-		String json = gson.toJson(cards);
-		Editor editor = App.getSettings().edit();
-		editor.putString("draw", json);
-		editor.commit();
 
-
-	}
 
 	public void setSize(int cardWidth, int cardHeight) {
 		for (ImageView ten : tens) {
@@ -197,35 +174,7 @@ public class Deck extends RelativeLayout {
 		setLooks();
 	}
 
-	public void addCardDealt() {
-		cardsDealt++;
-	}
 
-	public void setCompleted() {
-		setsCompleted++;
-		if (setsCompleted == NUMBER_OF_SETS) {
-			App.getBus().post(Game.GAME_WON);
-		}
-	}
-
-	public boolean isFullDeal() {
-		if (cardsDealt >= Deck.START_CARDS_DEAL_COUNT && cardsDealt % 10 == 4) {
-			return true;
-		}
-		return false;
-	}
-
-	public boolean isStartDeal() {
-		if (cardsDealt == START_CARDS_DEAL_COUNT) {
-			return true;
-		}
-		return false;
-	}
-
-	public void setUndid() {
-		setsCompleted--;
-		App.getBus().post(Game.GAME_STILL_NOT_WON);
-	}
 
 	public ImageView getLastVisible() {
 		RelativeLayout rl = (RelativeLayout) getChildAt(0);

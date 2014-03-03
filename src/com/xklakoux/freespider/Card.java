@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.xklakoux.freespider.R;
 import com.xklakoux.freespider.enums.Number;
 import com.xklakoux.freespider.enums.Suit;
 
@@ -37,7 +38,7 @@ public class Card extends ImageView {
 	private Number number;
 	private boolean faceup = false;
 	private final int reverseResourceId = (Utils
-			.getResId("reverse_" + App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE),
+			.getResId("reverse_" + Game.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE),
 					R.drawable.class));
 
 	public Card(Context context, Suit suit, Number number) {
@@ -47,7 +48,7 @@ public class Card extends ImageView {
 		setAdjustViewBounds(true);
 		setImageResource(reverseResourceId);
 		setOnTouchListener(new CardTouchListener());
-		setId(App.getUniqueId());
+		setId(Game.getUniqueId());
 	}
 
 	public Card(Context context, Suit suit, Number number, boolean faceUp) {
@@ -91,10 +92,10 @@ public class Card extends ImageView {
 	public void setFaceup(boolean faceup) {
 		this.faceup = faceup;
 		if (faceup) {
-			String index = App.getSettings().getString(Constant.SETT_CARD_SET, Constant.DEFAULT_CARD_SET);
+			String index = Game.getSettings().getString(Constant.SETT_CARD_SET, Constant.DEFAULT_CARD_SET);
 			setImageResource(Utils.getResId(suit.getName() + "_" + number.getId() + "_" + index, R.drawable.class));
 		} else {
-			String index = App.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
+			String index = Game.getSettings().getString(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE);
 			setImageResource(Utils.getResId("reverse_" + index, R.drawable.class));
 		}
 	}
@@ -115,14 +116,6 @@ public class Card extends ImageView {
 				int index = owner.indexOfChild(v);
 				Card card = (Card) v;
 
-				// if (index == owner.getChildCount() - 1 && !card.isFaceup()) {
-				// card.setFaceup(true);
-				// GameActivity.getMoves().add(new
-				// Move(GameActivity.getPiles().indexOf(owner),
-				// Move.ACTION_UNCOVER));
-				// return false;
-				// }
-
 				if (isValidMove((Card) v)) {
 					ClipData data = ClipData.newPlainText("", "");
 					for (int i = 0; i < index; i++) {
@@ -133,6 +126,10 @@ public class Card extends ImageView {
 						for (int i = index; i < owner.getChildCount(); i++) {
 							owner.getChildAt(i).setVisibility(View.INVISIBLE);
 						}
+					}else {
+						for (int i = index; i < owner.getChildCount(); i++) {
+							owner.getChildAt(i).setVisibility(View.VISIBLE);
+						}
 					}
 					for (int i = 0; i < index; i++) {
 						owner.getChildAt(i).setVisibility(View.VISIBLE);
@@ -140,7 +137,7 @@ public class Card extends ImageView {
 					return true;
 				}
 			}
-			return false;
+			return true;
 		}
 
 		boolean isValidMove(Card selectedCard) {
@@ -212,7 +209,7 @@ class CardInstanceCreator implements InstanceCreator<Card>{
 
 	@Override
 	public Card createInstance(Type arg0) {
-		return new Card(App.getAppContext(), Suit.SPADES, Number.ACE);
+		return new Card(Game.getAppContext(), Suit.SPADES, Number.ACE);
 	}
 
 }
@@ -238,7 +235,7 @@ class CardDeserializer implements JsonDeserializer<Card>{
 		Suit suit = Suit.values()[object.get("suit").getAsInt()];
 		Number number = Number.values()[object.get("number").getAsInt()];
 		Boolean faceUp = object.get("faceup").getAsBoolean();
-		Card card = new Card(App.getAppContext(),suit,number,faceUp);
+		Card card = new Card(Game.getAppContext(),suit,number,faceUp);
 		return card;
 	}
 }

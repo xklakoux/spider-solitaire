@@ -3,6 +3,10 @@
  */
 package com.xklakoux.freespider;
 
+import com.xklakoux.freespider.R;
+import com.xklakoux.freespider.R.drawable;
+import com.xklakoux.freespider.R.xml;
+
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
@@ -72,7 +76,7 @@ public class SettingsDialog extends PreferenceActivity {
 		}
 
 		int getIcon(String key, String def, String prefix) {
-			String res = App.getSettings().getString(key, def);
+			String res = Game.getSettings().getString(key, def);
 			return Utils.getResId(prefix + res, R.drawable.class);
 		}
 
@@ -93,7 +97,7 @@ public class SettingsDialog extends PreferenceActivity {
 
 					@Override
 					public boolean onPreferenceClick(Preference preference) {
-						SharedPreferences customSharedPreference = App.getSettings();
+						SharedPreferences customSharedPreference = Game.getSettings();
 						SharedPreferences.Editor editor = customSharedPreference.edit();
 						editor.putString(screen.getKey(), "" + index);
 						editor.commit();
@@ -115,7 +119,7 @@ public class SettingsDialog extends PreferenceActivity {
 
 			@Override
 			public boolean onPreferenceChange(Preference preference, Object newValue) {
-				SharedPreferences customSharedPreference = App.getSettings();
+				SharedPreferences customSharedPreference = Game.getSettings();
 				SharedPreferences.Editor editor = customSharedPreference.edit();
 
 				if (newValue instanceof Boolean) {
