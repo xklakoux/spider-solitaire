@@ -145,7 +145,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 		chosenDifficulty = Difficulty.valueOf(prefs.getString(Constant.SETT_DIFFICULTY, "EASY").toUpperCase());
 
-		chosenOrientation = prefs.getString(Constant.SETT_ORIENTATION, "auto");
+		chosenOrientation = prefs.getString(Constant.SETT_ORIENTATION, Constant.DEFAULT_ORIENTATION);
 		if (chosenOrientation.equals("horizontal")) {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		} else if (chosenOrientation.equals("vertical")) {
@@ -168,11 +168,6 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		} else if (speed.equals("superfast")) {
 			chosenAnimationSpeed = 0.0f;
 		}
-	}
-
-	@Override
-	protected void onSaveInstanceState(Bundle outState) {
-		super.onSaveInstanceState(outState);
 	}
 
 	private void findViewsSetListenersAndManagers() {
@@ -225,6 +220,11 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		prefs.registerOnSharedPreferenceChangeListener(this);
 
 		refreshResources();
+	}
+
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -557,6 +557,9 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
 			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
 				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
+				draggedParent.checkFullSetAndClear(false);
+				landingContainer.checkFullSetAndClear(false);
+
 			}
 
 			break;
