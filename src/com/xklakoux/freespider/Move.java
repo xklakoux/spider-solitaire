@@ -1,6 +1,6 @@
 package com.xklakoux.freespider;
 
-import com.xklakoux.freespider.enums.Suit;
+import com.xklakoux.solitariolib.enums.Suit;
 
 /**
  * @author artur

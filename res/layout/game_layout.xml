@@ -25,77 +25,77 @@
             android:splitMotionEvents="false"
             android:weightSum="11" >
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile0"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile1"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile2"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile3"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile4"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile5"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile6"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile7"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile8"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/pile9"
                 style="@style/piles"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
 
-            <com.xklakoux.freespider.Pile
+            <com.xklakoux.freespider.BasePile
                 android:id="@+id/hollowPile"
                 style="@style/piles"
                 android:layout_width="fill_parent"

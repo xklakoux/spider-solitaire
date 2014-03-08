@@ -4,8 +4,8 @@
 package com.xklakoux.freespider;
 
 import com.xklakoux.freespider.R;
-import com.xklakoux.freespider.R.drawable;
-import com.xklakoux.freespider.R.xml;
+import com.xklakoux.solitariolib.SettingsConstant;
+import com.xklakoux.solitariolib.Utils;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -42,27 +42,27 @@ public class SettingsDialog extends PreferenceActivity {
 			super.onCreate(savedInstanceState);
 			addPreferencesFromResource(R.xml.settings);
 
-			final PreferenceScreen cardReverseList = (PreferenceScreen) findPreference(Constant.SETT_REVERSE);
-			cardReverseList.setIcon(getIcon(Constant.SETT_REVERSE, Constant.DEFAULT_REVERSE, "reverse_"));
+			final PreferenceScreen cardReverseList = (PreferenceScreen) findPreference(SettingsConstant.REVERSE);
+			cardReverseList.setIcon(getIcon(SettingsConstant.REVERSE, SettingsConstant.DEFAULT_REVERSE, "reverse_"));
 
-			final PreferenceScreen cardImageList = (PreferenceScreen) findPreference(Constant.SETT_CARD_SET);
-			cardImageList.setIcon(getIcon(Constant.SETT_CARD_SET, Constant.DEFAULT_CARD_SET, "spades_13_"));
+			final PreferenceScreen cardImageList = (PreferenceScreen) findPreference(SettingsConstant.CARD_SET);
+			cardImageList.setIcon(getIcon(SettingsConstant.CARD_SET, SettingsConstant.DEFAULT_CARD_SET, "spades_13_"));
 
-			final PreferenceScreen backgroundImageList = (PreferenceScreen) findPreference(Constant.SETT_BACKGROUND);
-			backgroundImageList.setIcon(getIcon(Constant.SETT_BACKGROUND, Constant.DEFAULT_BACKGROUND, "background_"));
+			final PreferenceScreen backgroundImageList = (PreferenceScreen) findPreference(SettingsConstant.BACKGROUND);
+			backgroundImageList.setIcon(getIcon(SettingsConstant.BACKGROUND, SettingsConstant.DEFAULT_BACKGROUND, "background_"));
 
 			createPreferencesList(cardReverseList, "reverse_icon_", "Reverse");
 			createPreferencesList(cardImageList, "spades_13_icon_", "Set");
 			createPreferencesList(backgroundImageList, "background_icon_", "Background");
 
-			final CheckBoxPreference unrestrictedDeal = (CheckBoxPreference) findPreference(Constant.SETT_UNRES_DEAL);
-			final CheckBoxPreference unrestrictedUndo = (CheckBoxPreference) findPreference(Constant.SETT_UNRES_UNDO);
-			final CheckBoxPreference hints = (CheckBoxPreference) findPreference(Constant.SETT_HINTS);
-			final CheckBoxPreference sounds = (CheckBoxPreference) findPreference(Constant.SETT_SOUNDS);
+			final CheckBoxPreference unrestrictedDeal = (CheckBoxPreference) findPreference(SettingsConstant.UNRES_DEAL);
+			final CheckBoxPreference unrestrictedUndo = (CheckBoxPreference) findPreference(SettingsConstant.UNRES_UNDO);
+			final CheckBoxPreference hints = (CheckBoxPreference) findPreference(SettingsConstant.HINTS);
+			final CheckBoxPreference sounds = (CheckBoxPreference) findPreference(SettingsConstant.SOUNDS);
 
-			final ListPreference orientation = (ListPreference) findPreference(Constant.SETT_ORIENTATION);
-			final ListPreference animation = (ListPreference) findPreference(Constant.SETT_ANIMATION);
-			final ListPreference difficulty = (ListPreference) findPreference(Constant.SETT_DIFFICULTY);
+			final ListPreference orientation = (ListPreference) findPreference(SettingsConstant.ORIENTATION);
+			final ListPreference animation = (ListPreference) findPreference(SettingsConstant.ANIMATION);
+			final ListPreference difficulty = (ListPreference) findPreference(SettingsConstant.DIFFICULTY);
 
 			unrestrictedDeal.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());
 			unrestrictedUndo.setOnPreferenceChangeListener(new MyOnPreferenceChangeListener());

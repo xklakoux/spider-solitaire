@@ -13,10 +13,12 @@ import android.view.animation.Animation.AnimationListener;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.TranslateAnimation;
 
-/**
- * @author artur
- * 
- */
+import com.xklakoux.solitariolib.SettingsConstant;
+import com.xklakoux.solitariolib.StatsManager;
+import com.xklakoux.solitariolib.views.BasePile;
+import com.xklakoux.solitariolib.views.Card;
+
+
 public class Pile extends BasePile{
 
 	private static final String TAG = Pile.class.getSimpleName();
@@ -27,17 +29,6 @@ public class Pile extends BasePile{
 		super(context, attrs);
 	}
 
-	public boolean uncoverLastCard() {
-		if (getCardsCount() > 0) {
-			Card lastCard = getLastCard();
-			if (!lastCard.isFaceup()) {
-				lastCard.setFaceup(true);
-				return true;
-			}
-		}
-		return false;
-	}
-
 	@Override
 	public void addCard(Card movedCard) {
 
@@ -46,12 +37,12 @@ public class Pile extends BasePile{
 		MarginLayoutParams marginParams = new MarginLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,
 				LayoutParams.WRAP_CONTENT));
 		marginParams.setMargins(0, marginTop, 0, 0);
-		Pile.LayoutParams layoutParams = new Pile.LayoutParams(marginParams);
+		BasePile.LayoutParams layoutParams = new BasePile.LayoutParams(marginParams);
 		movedCard.setLayoutParams(layoutParams);
 		addView(movedCard);
 	}
 
-	private int calculateMarginTop(Pile pile) {
+	private int calculateMarginTop(BasePile pile) {
 		int marginTop = 0;
 		Context context = Game.getAppContext();
 		for (int i = 0; i < pile.getCardsCount(); i++) {
@@ -69,7 +60,7 @@ public class Pile extends BasePile{
 		if (draggedCard==null || draggedCard.getParent() == null || this==draggedCard.getParent()) {
 			return false;
 		}
-		Pile draggedParent = (Pile) draggedCard.getParent();
+		BasePile draggedParent = (BasePile) draggedCard.getParent();
 
 		switch (event.getAction()) {
 		case DragEvent.ACTION_DRAG_STARTED:
@@ -84,7 +75,7 @@ public class Pile extends BasePile{
 		case DragEvent.ACTION_DROP:
 			setHighlight(false);
 
-			if(!canBeDropped(draggedParent, draggedCard)){
+			if(!fitOnEachother(getLastCard(), draggedCard)){
 				break;
 			}
 			moveCards(draggedParent,draggedCard);
@@ -103,36 +94,34 @@ public class Pile extends BasePile{
 		return true;
 	}
 
-	/**
-	 * @param draggedParent
-	 */
-	private void moveCards(Pile draggedParent,Card draggedCard) {
-		int indexOfDragged = draggedParent.indexOfCard(draggedCard);
-		int movedCards = 0;
-		for (int i = indexOfDragged; i < draggedParent.getCardsCount();) {
-			draggedParent.getCardAt(i).setVisibility(View.VISIBLE);
-			draggedParent.moveCard(this, draggedParent.getCardAt(i));
-			movedCards++;
-		}
-		draggedParent.checkFullSetAndClear(false);
-
-		int indexOfDraggedParent = (Integer) draggedParent.getTag();
-		int indexOfLandingParent = (Integer) getTag();
-
-		Game.getMoves().add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard.getSuit(),
-				Move.ACTION_MOVE));
-		if (checkFullSetAndClear(true)) {
-			Game.getLastMove().setCompleted(true);
-		}
-
-		Game.getLastMove().setUncover(draggedParent.uncoverLastCard());
-
-		Game.getStatsManager().updateMoves(StatsManager.MOVE);
-
-		if (Game.getSettings().getBoolean(Constant.SETT_SOUNDS, true)) {
-			Game.playSound(Game.SOUND_PUT_CARD);
-		}
-	}
+	//	@Override
+	//	private void moveCards(BasePile draggedParent,Card draggedCard) {
+	//		int indexOfDragged = draggedParent.indexOfCard(draggedCard);
+	//		int movedCards = 0;
+	//		for (int i = indexOfDragged; i < draggedParent.getCardsCount();) {
+	//			draggedParent.getCardAt(i).setVisibility(View.VISIBLE);
+	//			draggedParent.moveCard(this, draggedParent.getCardAt(i));
+	//			movedCards++;
+	//		}
+	//		draggedParent.checkState(false);
+	//
+	//		int indexOfDraggedParent = (Integer) draggedParent.getTag();
+	//		int indexOfLandingParent = (Integer) getTag();
+	//
+	//		Game.getMoves().add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard.getSuit(),
+	//				Move.ACTION_MOVE));
+	//		if (checkFullSetAndClear(true)) {
+	//			Game.getLastMove().setCompleted(true);
+	//		}
+	//
+	//		Game.getLastMove().setUncover(draggedParent.uncoverLastCard());
+	//
+	//		Game.getStatsManager().updateMoves(StatsManager.MOVE);
+	//
+	//		if (Game.getSettings().getBoolean(SettingsConstant.SOUNDS, true)) {
+	//			Game.playSound(Game.SOUND_PUT_CARD);
+	//		}
+	//	}
 
 	public boolean checkFullSetAndClear(boolean animation) {
 		refresh();
@@ -142,9 +131,9 @@ public class Pile extends BasePile{
 		for (int i = lastIndex - 1; i >= 0; i--) {
 			Card card = getCardAt(i);
 			if (!(referenceCard.getSuit() == card.getSuit())
-					|| !(referenceCard.getNumber().getId() == (card.getNumber().getId() - 1)) || !card.isFaceup()) {
+					|| !(referenceCard.getRank().getId() == (card.getRank().getId() - 1)) || !card.isFaceup()) {
 
-				if (Game.getSettings().getBoolean(Constant.SETT_HINTS, true)) {
+				if (Game.getSettings().getBoolean(SettingsConstant.HINTS, true)) {
 					for (int j = i; j >= 0; j--) {
 						Card c = getCardAt(j);
 						if (c.isFaceup()) {
@@ -191,10 +180,10 @@ public class Pile extends BasePile{
 
 	class FullSetClearAnimationListener implements AnimationListener {
 
-		private final Pile container;
+		private final BasePile container;
 		private final Card card;
 
-		public FullSetClearAnimationListener(Pile container, Card card) {
+		public FullSetClearAnimationListener(BasePile container, Card card) {
 			this.container = container;
 			this.card = card;
 		}
@@ -203,7 +192,7 @@ public class Pile extends BasePile{
 		public void onAnimationEnd(Animation animation) {
 			container.removeView(card);
 			Game.getLastMove().setCompletedUncovered(container.uncoverLastCard());
-			container.checkFullSetAndClear(true);
+			container.checkState(true);
 			// if (chosenSound) {
 			// sp.play(drawSoundId, 1, 1, 0, 0, 1);
 			// }
@@ -217,18 +206,6 @@ public class Pile extends BasePile{
 		public void onAnimationStart(Animation animation) {
 			card.setOnDragListener(null);
 		}
-
-	}
-
-	@Override
-	protected boolean canBeDropped(BasePile draggedParent, Card draggedCard){
-		if (!isEmpty()) {
-			Card lastCard = getLastCard();
-			if (lastCard.getNumber().getId() != draggedCard.getNumber().getId() + 1 || !lastCard.isFaceup()) {
-				return false;
-			}
-		}
-		return true;
 
 	}
 
@@ -249,4 +226,43 @@ public class Pile extends BasePile{
 		super.removeCard(card);
 	}
 
+	@Override
+	protected boolean fitOnEachother(Card cardBelow, Card cardOver) {
+		if (!isEmpty()) {
+			Card lastCard = getLastCard();
+			if (lastCard.getRank().getId() != cardOver.getRank().getId() + 1 || !lastCard.isFaceup()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@Override
+	protected void moveCards(BasePile draggedParent, Card draggedCard) {
+		int indexOfDragged = draggedParent.indexOfCard(draggedCard);
+		int movedCards = 0;
+		for (int i = indexOfDragged; i < draggedParent.getCardsCount();) {
+			draggedParent.getCardAt(i).setVisibility(View.VISIBLE);
+			draggedParent.moveCard(this, draggedParent.getCardAt(i));
+			movedCards++;
+		}
+		checkFullSetAndClear(false);
+
+		int indexOfDraggedParent = (Integer) draggedParent.getTag();
+		int indexOfLandingParent = (Integer) getTag();
+
+		Game.getMoves().add(new Move(movedCards, indexOfDraggedParent, indexOfLandingParent, draggedCard.getSuit(),
+				Move.ACTION_MOVE));
+		if (checkFullSetAndClear(true)) {
+			Game.getLastMove().setCompleted(true);
+		}
+
+		Game.getLastMove().setUncover(draggedParent.uncoverLastCard());
+
+		Game.getStatsManager().updateMoves(StatsManager.MOVE);
+
+		if (Game.getSettings().getBoolean(SettingsConstant.SOUNDS, true)) {
+			Game.playSound(Game.SOUND_PUT_CARD);
+		}
+	}
 }

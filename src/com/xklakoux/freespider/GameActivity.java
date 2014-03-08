@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -17,7 +18,6 @@ import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -44,10 +44,16 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.squareup.otto.Subscribe;
-import com.xklakoux.freespider.enums.Difficulty;
-import com.xklakoux.freespider.enums.GameState;
-import com.xklakoux.freespider.enums.Number;
-import com.xklakoux.freespider.enums.Suit;
+import com.xklakoux.solitariolib.SettingsConstant;
+import com.xklakoux.solitariolib.StatsManager;
+import com.xklakoux.solitariolib.Utils;
+import com.xklakoux.solitariolib.enums.Difficulty;
+import com.xklakoux.solitariolib.enums.GameState;
+import com.xklakoux.solitariolib.enums.Rank;
+import com.xklakoux.solitariolib.enums.Suit;
+import com.xklakoux.solitariolib.views.BasePile;
+import com.xklakoux.solitariolib.views.Card;
+import com.xklakoux.solitariolib.views.CardDeserializer;
 
 public class GameActivity extends Activity implements OnSharedPreferenceChangeListener {
 
@@ -55,7 +61,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 	private RelativeLayout root;
 
-	static List<Pile> pileLayouts;
+	static List<BasePile> pileLayouts;
 
 	private Deck deck;
 	private TextView winner;
@@ -76,14 +82,14 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 	boolean onCreate = false;
 
-	int cardWidth;
-	int cardHeight;
+	protected int cardWidth;
+	protected int cardHeight;
 
 
 
-	private final int DELAY = 2000;
-	private final Handler handler = new Handler();
-	private final Runnable runnable = new Runnable() {
+	protected final int DELAY = 2000;
+	protected final Handler handler = new Handler();
+	protected final Runnable runnable = new Runnable() {
 		@Override
 		public void run() {
 			getActionBar().hide();
@@ -112,7 +118,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		onCreate = false;
 
 		GsonBuilder gsonBuilder = new GsonBuilder();
-		gsonBuilder.registerTypeAdapter(Card.class, new CardDeserializer());
+		gsonBuilder.registerTypeAdapter(Card.class, new CardDeserializer(Game.getAppContext()));
 		Gson gson = gsonBuilder.create();
 
 		String draw = Game.getSettings().getString("draw", null);
@@ -124,7 +130,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 
 		for (int k = 0; k < Game.START_CARDS_DEAL_COUNT; k++) {
-			Pile pile = pileLayouts.get(k % 10);
+			BasePile pile = pileLayouts.get(k % 10);
 
 			Card card = deck.getCard();
 			Game.addCardDealt();
@@ -143,9 +149,9 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 	private void initSettings() {
 		prefs = Game.getSettings();
 
-		chosenDifficulty = Difficulty.valueOf(prefs.getString(Constant.SETT_DIFFICULTY, "EASY").toUpperCase());
+		chosenDifficulty = Difficulty.valueOf(prefs.getString(SettingsConstant.DIFFICULTY, "EASY").toUpperCase());
 
-		chosenOrientation = prefs.getString(Constant.SETT_ORIENTATION, Constant.DEFAULT_ORIENTATION);
+		chosenOrientation = prefs.getString(SettingsConstant.ORIENTATION, SettingsConstant.DEFAULT_ORIENTATION);
 		if (chosenOrientation.equals("horizontal")) {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		} else if (chosenOrientation.equals("vertical")) {
@@ -154,13 +160,13 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
 		}
 
-		chosenSound = prefs.getBoolean(Constant.SETT_SOUNDS, true);
-		chosenUnrestrictedDeal = prefs.getBoolean(Constant.SETT_UNRES_DEAL, false);
-		chosenUnrestrictedUndo = prefs.getBoolean(Constant.SETT_UNRES_UNDO, false);
+		chosenSound = prefs.getBoolean(SettingsConstant.SOUNDS, true);
+		chosenUnrestrictedDeal = prefs.getBoolean(SettingsConstant.UNRES_DEAL, false);
+		chosenUnrestrictedUndo = prefs.getBoolean(SettingsConstant.UNRES_UNDO, false);
 
-		chosenHints = prefs.getBoolean(Constant.SETT_HINTS, true);
+		chosenHints = prefs.getBoolean(SettingsConstant.HINTS, true);
 
-		String speed = prefs.getString(Constant.SETT_ANIMATION, "slow");
+		String speed = prefs.getString(SettingsConstant.ANIMATION, "slow");
 		if (speed.equals("slow")) {
 			chosenAnimationSpeed = 1.0f;
 		} else if (speed.equals("fast")) {
@@ -174,23 +180,23 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		winner = (TextView) findViewById(R.id.winner);
 
 		piles = (LinearLayout) findViewById(R.id.piles);
-		hollowPile = (Pile) findViewById(R.id.hollowPile);
+		hollowPile = (BasePile) findViewById(R.id.hollowPile);
 		statsLayout = (RelativeLayout) findViewById(R.id.stats);
 
-		pileLayouts = new LinkedList<Pile>();
-		pileLayouts.add((Pile) findViewById(R.id.pile0));
-		pileLayouts.add((Pile) findViewById(R.id.pile1));
-		pileLayouts.add((Pile) findViewById(R.id.pile2));
-		pileLayouts.add((Pile) findViewById(R.id.pile3));
-		pileLayouts.add((Pile) findViewById(R.id.pile4));
-		pileLayouts.add((Pile) findViewById(R.id.pile5));
-		pileLayouts.add((Pile) findViewById(R.id.pile6));
-		pileLayouts.add((Pile) findViewById(R.id.pile7));
-		pileLayouts.add((Pile) findViewById(R.id.pile8));
-		pileLayouts.add((Pile) findViewById(R.id.pile9));
+		pileLayouts = new LinkedList<BasePile>();
+		pileLayouts.add((BasePile) findViewById(R.id.pile0));
+		pileLayouts.add((BasePile) findViewById(R.id.pile1));
+		pileLayouts.add((BasePile) findViewById(R.id.pile2));
+		pileLayouts.add((BasePile) findViewById(R.id.pile3));
+		pileLayouts.add((BasePile) findViewById(R.id.pile4));
+		pileLayouts.add((BasePile) findViewById(R.id.pile5));
+		pileLayouts.add((BasePile) findViewById(R.id.pile6));
+		pileLayouts.add((BasePile) findViewById(R.id.pile7));
+		pileLayouts.add((BasePile) findViewById(R.id.pile8));
+		pileLayouts.add((BasePile) findViewById(R.id.pile9));
 
 		int i=0;
-		for(Pile pile: pileLayouts) {
+		for(BasePile pile: pileLayouts) {
 			pile.setTag(i++);
 		}
 
@@ -230,11 +236,11 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 	@SuppressWarnings("deprecation")
 	public void refreshResources() {
 
-		for (Pile pile : pileLayouts) {
+		for (BasePile pile : pileLayouts) {
 			pile.refresh();
 		}
 		deck.refresh();
-		String backgroundResName = Game.getSettings().getString(Constant.SETT_BACKGROUND, Constant.DEFAULT_BACKGROUND);
+		String backgroundResName = Game.getSettings().getString(SettingsConstant.BACKGROUND, SettingsConstant.DEFAULT_BACKGROUND);
 		root.setBackgroundDrawable((getResources().getDrawable((Utils.getResId("background_" + backgroundResName,
 				R.drawable.class)))));
 
@@ -256,7 +262,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 			}
 			int i = 0;
 			Game.setState(GameState.DEALING);
-			for (Pile pile : pileLayouts) {
+			for (BasePile pile : pileLayouts) {
 				Card card = deck.getCard();
 				dealCard(pile, card, true, i++, false);
 			}
@@ -268,7 +274,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		 * @return
 		 */
 		private boolean cardsCorrect() {
-			for (Pile pile : pileLayouts) {
+			for (BasePile pile : pileLayouts) {
 				if (pile.getCardsCount() < 1) {
 					Toast.makeText(GameActivity.this, R.string.all_tableaus_should_be_filled, Toast.LENGTH_SHORT)
 					.show();
@@ -281,7 +287,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 	}
 
 
-	private void dealCard(Pile pile, Card card, boolean faceup, int hundredMillisecondOffset, boolean isNewGameDeal) {
+	private void dealCard(BasePile pile, Card card, boolean faceup, int hundredMillisecondOffset, boolean isNewGameDeal) {
 
 		int[] deckLocation = new int[2];
 		deck.getLastVisible().getLocationOnScreen(deckLocation);
@@ -289,7 +295,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 		int[] location = new int[2];
 		pile.getLastTrueChild().getLocationOnScreen(location);
-		final Card fakeCard = new Card(GameActivity.this, Suit.SPADES, Number.ACE);
+		final Card fakeCard = new Card(GameActivity.this, Suit.SPADES, Rank.ACE);
 		root.addView(fakeCard);
 		setCardSize(fakeCard);
 		fakeCard.setOnTouchListener(null);
@@ -326,12 +332,12 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 	class DealAnimationListener implements AnimationListener {
 
-		private final Pile container;
+		private final BasePile container;
 		private final Card card;
 		private final Card fakeAnimCard;
 		private final RelativeLayout root;
 
-		public DealAnimationListener(Pile container, Card card, RelativeLayout root, Card fakeAnimCard) {
+		public DealAnimationListener(BasePile container, Card card, RelativeLayout root, Card fakeAnimCard) {
 			this.container = container;
 			this.card = card;
 			this.fakeAnimCard = fakeAnimCard;
@@ -341,7 +347,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		@Override
 		public void onAnimationEnd(Animation animation) {
 			container.addCard(card);
-			if (container.checkFullSetAndClear(true)) {
+			if (container.checkState(true)) {
 				Move lastMove = Game.getMoves().get(Game.getMoves().size() - 1);
 				lastMove.setCompleted(true);
 				lastMove.setSuit(card.getSuit());
@@ -378,7 +384,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 	private void dealNewGame() {
 		Game.setState(GameState.DEALING);
 		for (int k = 0; k < Game.START_CARDS_DEAL_COUNT; k++) {
-			Pile pile = pileLayouts.get(k % 10);
+			BasePile pile = pileLayouts.get(k % 10);
 
 			Card card = deck.getCard();
 
@@ -439,7 +445,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				setupNewGame();
+				setupNewGame(); 	
 			}
 		});
 		builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -504,7 +510,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		Game.setState(GameState.DEALING);
 		Game.getMoves().clear();
 
-		for (Pile pileLayout : pileLayouts) {
+		for (BasePile pileLayout : pileLayouts) {
 			pileLayout.removeViews(1, pileLayout.getCardsCount());
 		}
 		deck.initialize(chosenDifficulty, GameActivity.this);
@@ -527,8 +533,8 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 			return;
 		}
 
-		Pile landingContainer = pileLayouts.get(move.getFrom());
-		Pile draggedParent = pileLayouts.get(move.getTo());
+		BasePile landingContainer = pileLayouts.get(move.getFrom());
+		BasePile draggedParent = pileLayouts.get(move.getTo());
 
 		if (move.isCompletedUncovered()) {
 			draggedParent.getLastCard().setFaceup(false);
@@ -538,7 +544,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 			Game.setUndid();
 			Game.getStatsManager().updatePoints(StatsManager.SET_UNDID);
 
-			for (Number num : Number.values()) {
+			for (Rank num : Rank.values()) {
 				Card card = new Card(GameActivity.this, move.getSuit(), num);
 				card.setFaceup(true);
 				draggedParent.addCard(card);
@@ -557,8 +563,8 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 			indexOfFirstDragged = draggedParent.getCardsCount() - move.getAmount();
 			for (int i = indexOfFirstDragged; i < draggedParent.getCardsCount();) {
 				draggedParent.moveCard(landingContainer, draggedParent.getCardAt(i));
-				draggedParent.checkFullSetAndClear(false);
-				landingContainer.checkFullSetAndClear(false);
+				draggedParent.checkState(false);
+				landingContainer.checkState(false);
 
 			}
 
@@ -582,8 +588,8 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 	private void redo(int index) {
 		Move move = Game.getMoves().get(index);
 
-		Pile draggedParent = pileLayouts.get(move.getFrom());
-		Pile landingContainer = pileLayouts.get(move.getTo());
+		BasePile draggedParent = pileLayouts.get(move.getFrom());
+		BasePile landingContainer = pileLayouts.get(move.getTo());
 
 		int indexOfFirstDragged;
 
@@ -623,7 +629,6 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		super.onStart();
 		if (Game.getState() == GameState.STARTED) {
 			Long timeWhenStopped = Game.getSettings().getLong("time", 0);
-			Log.d(TAG, "time: " + timeWhenStopped + " " + SystemClock.elapsedRealtime());
 			Game.getStatsManager().onGameResume(timeWhenStopped);
 		}
 	}
@@ -644,7 +649,6 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 		editor.commit();
 
 		Log.d(TAG, "onPause");
-
 	}
 
 	@Override
@@ -715,7 +719,7 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 
 		initSettings();
 
-		if (key.equals(Constant.SETT_DIFFICULTY)) {
+		if (key.equals(SettingsConstant.DIFFICULTY)) {
 			if (sharedPreferences.getBoolean("firstTime", false)) {
 				if (Game.getState() != GameState.DEALING) {
 					setupNewGame();
@@ -725,17 +729,17 @@ public class GameActivity extends Activity implements OnSharedPreferenceChangeLi
 				e.putBoolean("firstTime", true);
 				e.commit();
 			}
-		} else if (key.equals(Constant.SETT_BACKGROUND)) {
-			String backgroundResName = Game.getSettings().getString(Constant.SETT_BACKGROUND,
-					Constant.DEFAULT_BACKGROUND);
+		} else if (key.equals(SettingsConstant.BACKGROUND)) {
+			String backgroundResName = Game.getSettings().getString(SettingsConstant.BACKGROUND,
+					SettingsConstant.DEFAULT_BACKGROUND);
 			Drawable background = getResources().getDrawable(
 					(Utils.getResId("background_" + backgroundResName, R.drawable.class)));
 			root.setBackgroundDrawable(background);
 
-		} else if (key.equals(Constant.SETT_HINTS) || key.equals(Constant.SETT_CARD_SET)
-				|| key.equals(Constant.SETT_REVERSE)) {
+		} else if (key.equals(SettingsConstant.HINTS) || key.equals(SettingsConstant.CARD_SET)
+				|| key.equals(SettingsConstant.REVERSE)) {
 
-			for (Pile pile : pileLayouts) {
+			for (BasePile pile : pileLayouts) {
 				pile.refresh();
 			}
 		}

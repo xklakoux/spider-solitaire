@@ -7,12 +7,6 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Stack;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.squareup.otto.Bus;
-import com.xklakoux.freespider.enums.GameState;
-
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -20,6 +14,15 @@ import android.content.SharedPreferences.Editor;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.preference.PreferenceManager;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.squareup.otto.Bus;
+import com.xklakoux.solitariolib.StatsManager;
+import com.xklakoux.solitariolib.enums.GameState;
+import com.xklakoux.solitariolib.views.Card;
+import com.xklakoux.solitariolib.views.CardSerializer;
 
 /**
  * @author artur
